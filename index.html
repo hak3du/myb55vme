@@ -1,41 +1,67 @@
 <!doctype html>
 <html>
-    <head>
-        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
-    </head>
+  <head>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+  </head>
 
-    <body style="margin: 0; overflow: hidden;">
-        <a-scene
-            vr-mode-ui="enabled: false;"
-            loading-screen="enabled: false;"
-            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-            id="scene"
-            embedded
-            gesture-detector
-        >
-            <a-marker
-                id="animated-marker"
-                type="pattern"
-                preset="custom"
-                url="assets/marker.patt"
-                raycaster="objects: .clickable"
-                emitevents="true"
-                cursor="fuse: false; rayOrigin: mouse;"
-                id="markerA"
-            >
-                <a-image
-                    src="assets/asset.png"
-                    scale="1 1 1"
-                    class="clickable"
-                    rotation="-90 0 0"
-                    gesture-handler
-                ></a-image>
-            </a-marker>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene
+      vr-mode-ui="enabled: false;"
+      loading-screen="enabled: false;"
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+      id="scene"
+      embedded
+      gesture-detector
+    >
+      <!-- Preload all images -->
+      <a-assets>
+        <img id="img1" src="assets/1.png">
+        <img id="img2" src="assets/2.png">
+        <img id="img3" src="assets/3.png">
+        <img id="img4" src="assets/4.png">
+        <img id="img5" src="assets/5.png">
+        <img id="img6" src="assets/6.png">
+        <img id="img7" src="assets/7.png">
+        <img id="img8" src="assets/8.png">
+      </a-assets>
 
-            <a-entity camera></a-entity>
-        </a-scene>
-    </body>
+      <!-- Marker -->
+      <a-marker
+        id="animated-marker"
+        type="pattern"
+        preset="custom"
+        url="assets/marker.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-image
+          id="slideshow"
+          src="#img1"
+          scale="2 2 2"
+          rotation="-90 0 0"
+          class="clickable"
+          gesture-handler
+        ></a-image>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      const images = ["#img1", "#img2", "#img3", "#img4", "#img5", "#img6", "#img7", "#img8"];
+      let current = 0;
+
+      const marker = document.querySelector("#animated-marker");
+      const slideshow = document.querySelector("#slideshow");
+
+      marker.addEventListener("click", () => {
+        current = (current + 1) % images.length;
+        slideshow.setAttribute("src", images[current]);
+      });
+    </script>
+  </body>
 </html>
