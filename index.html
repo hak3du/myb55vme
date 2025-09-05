@@ -18,14 +18,14 @@
     >
       <!-- Preload all images -->
       <a-assets>
-        <img id="img1" src="assets/1.png">
-        <img id="img2" src="assets/2.png">
-        <img id="img3" src="assets/3.png">
-        <img id="img4" src="assets/4.png">
-        <img id="img5" src="assets/5.png">
-        <img id="img6" src="assets/6.png">
-        <img id="img7" src="assets/7.png">
-        <img id="img8" src="assets/8.png">
+        <img id="img1" src="1.png">
+        <img id="img2" src="2.png">
+        <img id="img3" src="3.png">
+        <img id="img4" src="4.png">
+        <img id="img5" src="5.png">
+        <img id="img6" src="6.png">
+        <img id="img7" src="7.png">
+        <img id="img8" src="8.png">
       </a-assets>
 
       <!-- Marker -->
@@ -33,7 +33,7 @@
         id="animated-marker"
         type="pattern"
         preset="custom"
-        url="assets/marker.patt"
+        url="marker.patt"
         raycaster="objects: .clickable"
         emitevents="true"
         cursor="fuse: false; rayOrigin: mouse;"
@@ -58,6 +58,7 @@
       const marker = document.querySelector("#animated-marker");
       const slideshow = document.querySelector("#slideshow");
 
+      // Tap or click to scroll through images
       marker.addEventListener("click", () => {
         current = (current + 1) % images.length;
         slideshow.setAttribute("src", images[current]);
