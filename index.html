@@ -35,6 +35,21 @@
         color: white;
         cursor: pointer;
       }
+      #unmute-btn {
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        border-radius: 4px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        display: none;
+      }
     </style>
   </head>
 
@@ -49,7 +64,7 @@
     >
       <!-- Preload Video -->
       <a-assets>
-        <video id="vid1" src="vid1.mp4" autoplay loop muted playsinline></video>
+        <video id="vid1" src="vid1.mp4" autoplay loop muted playsinline crossorigin="anonymous"></video>
       </a-assets>
 
       <!-- Marker -->
@@ -59,15 +74,15 @@
         preset="custom"
         url="marker.patt"
         emitevents="true"
-        raycaster="objects: .clickable"
-        cursor="fuse: false; rayOrigin: mouse;"
       >
+        <!-- Stable video placement -->
         <a-video
           id="slideshow"
           src="#vid1"
           width="4"
           height="2.25"
           rotation="-90 0 0"
+          position="0 1 0"
           class="clickable"
           gesture-handler
         ></a-video>
@@ -82,6 +97,9 @@
       <button id="submit-answer">Submit</button>
     </div>
 
+    <!-- Unmute button -->
+    <button id="unmute-btn">Unmute</button>
+
     <script>
       const marker = document.querySelector("#animated-marker");
       const slideshow = document.querySelector("#slideshow");
@@ -89,10 +107,12 @@
       const answerInput = document.getElementById("user-answer");
       const submitBtn = document.getElementById("submit-answer");
       const videoEl = document.querySelector("#vid1");
+      const unmuteBtn = document.getElementById("unmute-btn");
 
       // Show input and play video when marker detected
       marker.addEventListener("markerFound", () => {
         overlay.style.display = "block";
+        unmuteBtn.style.display = "block";
         videoEl.play();
       });
 
@@ -100,6 +120,13 @@
       marker.addEventListener("markerLost", () => {
         overlay.style.display = "none";
         videoEl.pause();
+      });
+
+      // Unmute button functionality
+      unmuteBtn.addEventListener("click", () => {
+        videoEl.muted = false;
+        videoEl.play();
+        unmuteBtn.style.display = "none";
       });
 
       // Simple answer check example
