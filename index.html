@@ -10,7 +10,7 @@
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
       #input-overlay {
         position: absolute;
-        bottom: 21px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
@@ -47,6 +47,11 @@
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
       gesture-detector
     >
+      <!-- Preload Video -->
+      <a-assets>
+        <video id="vid1" src="vid1.mp4" autoplay loop muted playsinline></video>
+      </a-assets>
+
       <!-- Marker -->
       <a-marker
         id="animated-marker"
@@ -57,28 +62,19 @@
         raycaster="objects: .clickable"
         cursor="fuse: false; rayOrigin: mouse;"
       >
-        <!-- YouTube video as a plane -->
-        <a-entity
-          id="youtube-video"
-          geometry="primitive: plane; width: 4; height: 2.25"
-          material="shader: html; target: #video-iframe"
-          position="0 1 0"
+        <a-video
+          id="slideshow"
+          src="#vid1"
+          width="4"
+          height="2.25"
           rotation="-90 0 0"
-          visible="false"
-        ></a-entity>
+          class="clickable"
+          gesture-handler
+        ></a-video>
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
-
-    <!-- Hidden iframe for YouTube video -->
-    <iframe
-      id="video-iframe"
-      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
-      style="display:none;"
-      allow="autoplay; encrypted-media"
-      allowfullscreen
-    ></iframe>
 
     <!-- Input overlay -->
     <div id="input-overlay">
@@ -88,28 +84,31 @@
 
     <script>
       const marker = document.querySelector("#animated-marker");
-      const youtubeVideo = document.querySelector("#youtube-video");
+      const slideshow = document.querySelector("#slideshow");
       const overlay = document.getElementById("input-overlay");
       const answerInput = document.getElementById("user-answer");
       const submitBtn = document.getElementById("submit-answer");
+      const videoEl = document.querySelector("#vid1");
 
-      // Show video and input when marker is detected
+      // Show input and play video when marker detected
       marker.addEventListener("markerFound", () => {
-        youtubeVideo.setAttribute("visible", "true");
         overlay.style.display = "block";
+        videoEl.play();
       });
 
+      // Hide input and pause video when marker lost
       marker.addEventListener("markerLost", () => {
-        youtubeVideo.setAttribute("visible", "false");
         overlay.style.display = "none";
+        videoEl.pause();
       });
 
-      // Example input check
+      // Simple answer check example
       submitBtn.addEventListener("click", () => {
         const val = answerInput.value.trim().toLowerCase();
         if(val === "example answer"){
           alert("Correct!");
           answerInput.value = "";
+          // Here you can trigger next section
         } else {
           alert("Try again!");
         }
