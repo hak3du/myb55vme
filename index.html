@@ -47,18 +47,6 @@
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
       gesture-detector
     >
-      <!-- Preload Images -->
-      <a-assets>
-        <img id="img1" src="1.png">
-        <img id="img2" src="2.png">
-        <img id="img3" src="3.png">
-        <img id="img4" src="4.png">
-        <img id="img5" src="5.png">
-        <img id="img6" src="6.png">
-        <img id="img7" src="7.png">
-        <img id="img8" src="8.png">
-      </a-assets>
-
       <!-- Marker -->
       <a-marker
         id="animated-marker"
@@ -69,18 +57,28 @@
         raycaster="objects: .clickable"
         cursor="fuse: false; rayOrigin: mouse;"
       >
-        <a-image
-          id="slideshow"
-          src="#img1"
-          scale="2 2 2"
+        <!-- YouTube video as a plane -->
+        <a-entity
+          id="youtube-video"
+          geometry="primitive: plane; width: 4; height: 2.25"
+          material="shader: html; target: #video-iframe"
+          position="0 1 0"
           rotation="-90 0 0"
-          class="clickable"
-          gesture-handler
-        ></a-image>
+          visible="false"
+        ></a-entity>
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
+
+    <!-- Hidden iframe for YouTube video -->
+    <iframe
+      id="video-iframe"
+      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
+      style="display:none;"
+      allow="autoplay; encrypted-media"
+      allowfullscreen
+    ></iframe>
 
     <!-- Input overlay -->
     <div id="input-overlay">
@@ -89,38 +87,29 @@
     </div>
 
     <script>
-      const images = ["#img1","#img2","#img3","#img4","#img5","#img6","#img7","#img8"];
-      let current = 0;
-
       const marker = document.querySelector("#animated-marker");
-      const slideshow = document.querySelector("#slideshow");
+      const youtubeVideo = document.querySelector("#youtube-video");
       const overlay = document.getElementById("input-overlay");
       const answerInput = document.getElementById("user-answer");
       const submitBtn = document.getElementById("submit-answer");
 
-      // Cycle images on click/tap
-      marker.addEventListener("click", () => {
-        current = (current + 1) % images.length;
-        slideshow.setAttribute("src", images[current]);
-      });
-
-      // Show input when marker detected
+      // Show video and input when marker is detected
       marker.addEventListener("markerFound", () => {
+        youtubeVideo.setAttribute("visible", "true");
         overlay.style.display = "block";
       });
 
-      // Hide input when marker lost
       marker.addEventListener("markerLost", () => {
+        youtubeVideo.setAttribute("visible", "false");
         overlay.style.display = "none";
       });
 
-      // Simple answer check example
+      // Example input check
       submitBtn.addEventListener("click", () => {
         const val = answerInput.value.trim().toLowerCase();
         if(val === "example answer"){
           alert("Correct!");
           answerInput.value = "";
-          // Here you can trigger next section or next image
         } else {
           alert("Try again!");
         }
