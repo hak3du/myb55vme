@@ -1,18 +1,39 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8">
+    <title>AR YouTube Section</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      #input-container {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        text-align: center;
+      }
+      #answer-input {
+        padding: 8px 12px;
+        font-size: 1rem;
+      }
+      #submit-answer {
+        padding: 8px 16px;
+        font-size: 1rem;
+        margin-left: 8px;
+      }
+    </style>
   </head>
 
-  <body style="margin: 0; overflow: hidden;">
+  <body>
     <a-scene
-      vr-mode-ui="enabled: false;"
-      loading-screen="enabled: false;"
+      vr-mode-ui="enabled: false"
+      loading-screen="enabled: false"
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      id="scene"
       embedded
       gesture-detector
     >
@@ -24,7 +45,7 @@
         url="marker.patt"
         emitevents="true"
       >
-        <!-- YouTube Video via A-Frame iframe -->
+        <!-- YouTube Video via A-Frame HTML shader -->
         <a-entity
           id="youtube-video"
           geometry="primitive: plane; width: 4; height: 2.25"
@@ -42,22 +63,22 @@
     <iframe
       id="video-iframe"
       src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
-      style="display:none;"
+      style="display:none"
       allow="autoplay; encrypted-media"
       allowfullscreen
     ></iframe>
 
     <!-- Input field below the AR content -->
-    <div style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; text-align:center;">
-      <input type="text" id="answer-input" placeholder="Type your answer..." style="padding:8px 12px; font-size:1rem;">
-      <button id="submit-answer" style="padding:8px 16px; font-size:1rem; margin-left:8px;">Submit</button>
+    <div id="input-container">
+      <input type="text" id="answer-input" placeholder="Type your answer...">
+      <button id="submit-answer">Submit</button>
     </div>
 
     <script>
       const marker = document.querySelector("#animated-marker");
       const youtubeVideo = document.querySelector("#youtube-video");
 
-      // Show video when marker is detected
+      // Show/hide video on marker detection
       marker.addEventListener("markerFound", () => {
         youtubeVideo.setAttribute("visible", "true");
       });
@@ -66,7 +87,7 @@
         youtubeVideo.setAttribute("visible", "false");
       });
 
-      // Example input handling
+      // Input handling
       const input = document.getElementById("answer-input");
       const submitBtn = document.getElementById("submit-answer");
       submitBtn.addEventListener("click", () => {
