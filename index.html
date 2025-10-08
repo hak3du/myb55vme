@@ -37,18 +37,18 @@
         cursor: pointer;
       }
 
+      /* Small speaker icon button */
       #unmute-btn {
         position: absolute;
-        bottom: 120px;
+        bottom: 70px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 2000;
-        padding: 6px 12px;
-        font-size: 0.9rem;
-        border-radius: 4px;
+        width: 36px;
+        height: 36px;
+        background: url('https://upload.wikimedia.org/wikipedia/commons/8/8c/Speaker_Icon.svg') no-repeat center center;
+        background-size: contain;
         border: none;
-        background-color: #007bff;
-        color: white;
         cursor: pointer;
         display: none;
       }
@@ -77,19 +77,16 @@
         url="marker.patt"
         emitevents="true"
       >
-        <!-- Stable video wrapper -->
-        <a-entity position="0 0 0" rotation="0 0 0">
-          <a-video
-            id="slideshow"
-            src="#vid1"
-            width="4"
-            height="2.25"
-            rotation="-90 0 0"
-            position="0 1 0"
-            class="clickable"
-            gesture-handler
-          ></a-video>
-        </a-entity>
+        <!-- Video directly on top of marker -->
+        <a-video
+          id="slideshow"
+          src="#vid1"
+          width="4"
+          height="2.25"
+          rotation="-90 0 0"
+          class="clickable"
+          gesture-handler
+        ></a-video>
       </a-marker>
 
       <a-entity camera></a-entity>
@@ -101,8 +98,8 @@
       <button id="submit-answer">Submit</button>
     </div>
 
-    <!-- Unmute button -->
-    <button id="unmute-btn">Unmute</button>
+    <!-- Unmute button (speaker icon) -->
+    <button id="unmute-btn"></button>
 
     <script>
       const marker = document.querySelector("#animated-marker");
