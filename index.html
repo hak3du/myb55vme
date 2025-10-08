@@ -1,42 +1,64 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8">
-    <title>AR YouTube Section</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
     <style>
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
-      #input-container {
+      #input-overlay {
         position: absolute;
-        bottom: 30px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
-        text-align: center;
+        display: none;
+        background: rgba(0,0,0,0.6);
+        padding: 12px 16px;
+        border-radius: 8px;
       }
-      #answer-input {
-        padding: 8px 12px;
+      #input-overlay input {
+        padding: 6px 10px;
         font-size: 1rem;
+        border-radius: 4px;
+        border: none;
       }
-      #submit-answer {
-        padding: 8px 16px;
+      #input-overlay button {
+        padding: 6px 10px;
         font-size: 1rem;
         margin-left: 8px;
+        border-radius: 4px;
+        border: none;
+        background-color: #28a745;
+        color: white;
+        cursor: pointer;
       }
     </style>
   </head>
 
   <body>
+    <!-- AR Scene -->
     <a-scene
+      embedded
       vr-mode-ui="enabled: false"
       loading-screen="enabled: false"
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      embedded
       gesture-detector
     >
+      <!-- Preload Images -->
+      <a-assets>
+        <img id="img1" src="1.png">
+        <img id="img2" src="2.png">
+        <img id="img3" src="3.png">
+        <img id="img4" src="4.png">
+        <img id="img5" src="5.png">
+        <img id="img6" src="6.png">
+        <img id="img7" src="7.png">
+        <img id="img8" src="8.png">
+      </a-assets>
+
       <!-- Marker -->
       <a-marker
         id="animated-marker"
@@ -44,55 +66,64 @@
         preset="custom"
         url="marker.patt"
         emitevents="true"
+        raycaster="objects: .clickable"
+        cursor="fuse: false; rayOrigin: mouse;"
       >
-        <!-- YouTube Video via A-Frame HTML shader -->
-        <a-entity
-          id="youtube-video"
-          geometry="primitive: plane; width: 4; height: 2.25"
-          material="shader: html; target: #video-iframe"
-          position="0 1 0"
+        <a-image
+          id="slideshow"
+          src="#img1"
+          scale="2 2 2"
           rotation="-90 0 0"
-          visible="false"
-        ></a-entity>
+          class="clickable"
+          gesture-handler
+        ></a-image>
       </a-marker>
 
       <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- Hidden iframe for YouTube -->
-    <iframe
-      id="video-iframe"
-      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
-      style="display:none"
-      allow="autoplay; encrypted-media"
-      allowfullscreen
-    ></iframe>
-
-    <!-- Input field below the AR content -->
-    <div id="input-container">
-      <input type="text" id="answer-input" placeholder="Type your answer...">
+    <!-- Input overlay -->
+    <div id="input-overlay">
+      <input type="text" id="user-answer" placeholder="Type your answer..." />
       <button id="submit-answer">Submit</button>
     </div>
 
     <script>
+      const images = ["#img1","#img2","#img3","#img4","#img5","#img6","#img7","#img8"];
+      let current = 0;
+
       const marker = document.querySelector("#animated-marker");
-      const youtubeVideo = document.querySelector("#youtube-video");
-
-      // Show/hide video on marker detection
-      marker.addEventListener("markerFound", () => {
-        youtubeVideo.setAttribute("visible", "true");
-      });
-
-      marker.addEventListener("markerLost", () => {
-        youtubeVideo.setAttribute("visible", "false");
-      });
-
-      // Input handling
-      const input = document.getElementById("answer-input");
+      const slideshow = document.querySelector("#slideshow");
+      const overlay = document.getElementById("input-overlay");
+      const answerInput = document.getElementById("user-answer");
       const submitBtn = document.getElementById("submit-answer");
+
+      // Cycle images on click/tap
+      marker.addEventListener("click", () => {
+        current = (current + 1) % images.length;
+        slideshow.setAttribute("src", images[current]);
+      });
+
+      // Show input when marker detected
+      marker.addEventListener("markerFound", () => {
+        overlay.style.display = "block";
+      });
+
+      // Hide input when marker lost
+      marker.addEventListener("markerLost", () => {
+        overlay.style.display = "none";
+      });
+
+      // Simple answer check example
       submitBtn.addEventListener("click", () => {
-        alert("You entered: " + input.value);
-        input.value = "";
+        const val = answerInput.value.trim().toLowerCase();
+        if(val === "example answer"){
+          alert("Correct!");
+          answerInput.value = "";
+          // Here you can trigger next section or next image
+        } else {
+          alert("Try again!");
+        }
       });
     </script>
   </body>
