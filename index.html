@@ -130,15 +130,38 @@
       });
 
       // Simple answer check example
-      submitBtn.addEventListener("click", () => {
-        const val = answerInput.value.trim().toLowerCase();
-        if(val === "example answer"){
-          alert("Correct!");
-          answerInput.value = "";
-        } else {
-          alert("Try again!");
-        }
-      });
+const hiddenMarkerDiv = document.getElementById('hidden-marker'); // make sure this div exists in your HTML
+
+submitBtn.addEventListener("click", async () => {
+  const val = answerInput.value.trim().toLowerCase();
+  if (!val) return;
+
+  try {
+    // Send to server for validation
+    const response = await fetch('https://YOUR_SERVER/validate.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: 'USER_UNIQUE_ID', // replace dynamically per user/session
+        answer: val
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.showHiddenMarker) {
+      hiddenMarkerDiv.style.display = 'block';
+      alert("Correct! Hidden marker revealed.");
+      answerInput.value = "";
+    } else {
+      alert(data.message || "Try again!");
+    }
+  } catch (err) {
+    console.error("Server error:", err);
+    alert("Unable to validate answer. Try again later.");
+  }
+});
+
     </script>
   </body>
 </html>
