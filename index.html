@@ -8,12 +8,13 @@
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
     <style>
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
+
       #input-overlay {
         position: absolute;
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1000;
+        z-index: 2000;
         display: none;
         background: rgba(0,0,0,0.6);
         padding: 12px 16px;
@@ -35,14 +36,15 @@
         color: white;
         cursor: pointer;
       }
+
       #unmute-btn {
         position: absolute;
-        bottom: 80px;
+        bottom: 120px;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1000;
-        padding: 4px 8px;
-        font-size: 0.8rem;
+        z-index: 2000;
+        padding: 6px 12px;
+        font-size: 0.9rem;
         border-radius: 4px;
         border: none;
         background-color: #007bff;
@@ -75,17 +77,19 @@
         url="marker.patt"
         emitevents="true"
       >
-        <!-- Stable video placement -->
-        <a-video
-          id="slideshow"
-          src="#vid1"
-          width="4"
-          height="2.25"
-          rotation="-90 0 0"
-          position="0 1 0"
-          class="clickable"
-          gesture-handler
-        ></a-video>
+        <!-- Stable video wrapper -->
+        <a-entity position="0 0 0" rotation="0 0 0">
+          <a-video
+            id="slideshow"
+            src="#vid1"
+            width="4"
+            height="2.25"
+            rotation="-90 0 0"
+            position="0 1 0"
+            class="clickable"
+            gesture-handler
+          ></a-video>
+        </a-entity>
       </a-marker>
 
       <a-entity camera></a-entity>
@@ -102,7 +106,6 @@
 
     <script>
       const marker = document.querySelector("#animated-marker");
-      const slideshow = document.querySelector("#slideshow");
       const overlay = document.getElementById("input-overlay");
       const answerInput = document.getElementById("user-answer");
       const submitBtn = document.getElementById("submit-answer");
@@ -135,7 +138,6 @@
         if(val === "example answer"){
           alert("Correct!");
           answerInput.value = "";
-          // Here you can trigger next section
         } else {
           alert("Try again!");
         }
