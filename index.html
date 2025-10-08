@@ -64,5 +64,21 @@
         slideshow.setAttribute("src", images[current]);
       });
     </script>
+
+    <!-- Input field below the AR scene -->
+    <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; z-index: 1000;">
+      <input 
+        type="text" 
+        id="user-input" 
+        placeholder="Enter your text here..." 
+        style="padding: 10px 15px; font-size: 16px; width: 250px;"
+      >
+      <button id="submit-btn" style="padding: 10px 15px; font-size: 16px;">Submit</button>
+    </div>
+
   </body>
 </html>
+
+<div class="marker-wrapper">
+  <img  style="display: block;" src="C:\Users\Administrator\Pictures\marker.png" alt="Marker" class="marker-img">
+</div>
