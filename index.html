@@ -1,97 +1,142 @@
 <!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>AR Login</title>
 
-      /* Overay for AR login inputs */
-      #ar-login {
-        position: absolute;
-        z-index: 2000;
-        display: none;
-        background: rgba(0,0,0,0.7);
-        padding: 16px 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: white;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    /* Main page overlay with marker image */
+    #login-blur {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #login-blur img {
+      width: 150px;
+      height: 150px;
+    }
+
+    #login-blur h2 {
+      margin-top: 12px;
+      color: white;
+    }
+
+    /* AR login overlay */
+    #ar-login {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      background: rgba(0,0,0,0.8);
+      padding: 20px 30px;
+      border-radius: 12px;
+      color: white;
+      text-align: center;
+      z-index: 2000;
+    }
+
+    #ar-login input {
+      display: block;
+      width: 200px;
+      padding: 8px;
+      margin: 8px auto;
+      border-radius: 5px;
+      border: none;
+    }
+
+    #ar-login button {
+      margin-top: 12px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Blur overlay with marker image and Login text -->
+  <div id="login-blur">
+    <img src="marker.png" alt="AR Marker">
+    <h2>Login</h2>
+  </div>
+
+  <!-- AR Login Overlay (hidden until marker is detected) -->
+  <div id="ar-login">
+    <h3>Enter Credentials</h3>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button id="login-btn">Submit</button>
+  </div>
+
+  <!-- AR Scene -->
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    loading-screen="enabled: false"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+  >
+    <a-marker type="pattern" url="marker.patt" id="login-marker" emitevents="true">
+      <!-- Tiny box so the marker can be detected -->
+      <a-box position="0 0.5 0" color="red" scale="0.1 0.1 0.1"></a-box>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    const marker = document.querySelector("#login-marker");
+    const arLogin = document.getElementById("ar-login");
+    const blurOverlay = document.getElementById("login-blur");
+
+    // Show AR login overlay when marker is found
+    marker.addEventListener("markerFound", () => {
+      arLogin.style.display = "block";
+      blurOverlay.style.display = "none"; // Remove blur so user interacts with AR login
+    });
+
+    // Hide AR login overlay if marker is lost
+    marker.addEventListener("markerLost", () => {
+      arLogin.style.display = "none";
+      blurOverlay.style.display = "flex";
+    });
+
+    // Dummy login handler
+    document.getElementById("login-btn").addEventListener("click", () => {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username || !password) {
+        alert("Fill in both fields!");
+        return;
       }
 
-      #ar-login input {
-        display: block;
-        width: 180px;
-        padding: 8px 10px;
-        margin: 8px auto;
-        border-radius: 5px;
-        border: none;
-      }
+      alert(Logged in as: ${username});
+      // Here, later we can send this to your main site securely
+      arLogin.style.display = "none"; // hide login after success
+    });
+  </script>
 
-      #ar-login button {
-        padding: 8px 12px;
-        border-radius: 5px;
-        border: none;
-        background-color: #28a745;
-        color: white;
-        cursor: pointer;
-        margin-top: 10px;
-      }
-    </style>
-  </head>
-
-  <body>
-    <a-scene
-      embedded
-      vr-mode-ui="enabled: false"
-      loading-screen="enabled: false"
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-    >
-      <a-marker
-        type="pattern"
-        url="marker.patt"
-        id="login-marker"
-        emitevents="true"
-      ></a-marker>
-
-      <a-entity camera></a-entity>
-    </a-scene>
-
-    <!-- AR login overlay -->
-    <div id="ar-login">
-      <h3>Login</h3>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button id="login-btn">Submit</button>
-    </div>
-
-    <script>
-      const marker = document.querySelector("#login-marker");
-      const loginOverlay = document.getElementById("ar-login");
-
-      marker.addEventListener("markerFound", () => {
-        loginOverlay.style.display = "block";
-      });
-
-      marker.addEventListener("markerLost", () => {
-        loginOverlay.style.display = "none";
-      });
-
-      document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        if (!username || !password) {
-          alert("Please fill both fields.");
-          return;
-        }
-
-        alert(Dummy login: ${username} / ${password});
-        // Here we will eventually call your main site for verification
-      });
-    </script>
-  </body>
+</body>
 </html>
