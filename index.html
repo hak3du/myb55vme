@@ -4,53 +4,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      body { margin: 0; font-family: sans-serif; }
 
-      #input-overlay {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 2000;
-        display: none;
-        background: rgba(0,0,0,0.6);
-        padding: 12px 16px;
-        border-radius: 8px;
+      /* Blur background when overlay active */
+      body.overlay-active *:not(#login-overlay) {
+        filter: blur(6px);
+        pointer-events: none;
       }
-      #input-overlay input {
-        padding: 6px 10px;
+
+      /* Login overlay full screen */
+      #login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.7);
+        z-index: 9999;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      #login-overlay img {
+        width: 120px;
+        height: auto;
+        margin-bottom: 16px;
+      }
+
+      #login-overlay input {
+        width: 250px;
+        padding: 10px;
         font-size: 1rem;
         border-radius: 4px;
         border: none;
       }
-      #input-overlay button {
-        padding: 6px 10px;
+
+      #login-overlay button {
+        width: 270px;
+        padding: 10px;
         font-size: 1rem;
-        margin-left: 8px;
         border-radius: 4px;
         border: none;
         background-color: #28a745;
         color: white;
         cursor: pointer;
-      }
-
-      /* Small speaker icon button */
-      #unmute-btn {
-        position: absolute;
-        bottom: 70px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 2000;
-        width: 36px;
-        height: 36px;
-        background: url('https://upload.wikimedia.org/wikipedia/commons/8/8c/Speaker_Icon.svg') no-repeat center center;
-        background-size: contain;
-        border: none;
-        cursor: pointer;
-        display: none;
       }
     </style>
   </head>
@@ -62,106 +63,59 @@
       vr-mode-ui="enabled: false"
       loading-screen="enabled: false"
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      gesture-detector
     >
-      <!-- Preload Video -->
-      <a-assets>
-        <video id="vid1" src="vid1.mp4" autoplay loop muted playsinline crossorigin="anonymous"></video>
-      </a-assets>
-
       <!-- Marker -->
       <a-marker
-        id="animated-marker"
+        id="login-marker"
         type="pattern"
         preset="custom"
         url="marker.patt"
         emitevents="true"
       >
-        <!-- Video directly on top of marker -->
-        <a-video
-          id="slideshow"
-          src="#vid1"
-          width="4"
-          height="2.25"
-          rotation="-90 0 0"
-          class="clickable"
-          gesture-handler
-        ></a-video>
+        <!-- Just an empty entity for detection -->
+        <a-entity></a-entity>
       </a-marker>
-
       <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- Input overlay -->
-    <div id="input-overlay">
-      <input type="text" id="user-answer" placeholder="Type your answer..." />
-      <button id="submit-answer">Submit</button>
+    <!-- Login overlay -->
+    <div id="login-overlay" style="display:none;">
+      <img src="marker.png" alt="Login Marker" />
+      <input type="text" placeholder="Username" id="login-username" />
+      <input type="password" placeholder="Password" id="login-password" />
+      <button id="login-btn">Login</button>
     </div>
 
-    <!-- Unmute button (speaker icon) -->
-    <button id="unmute-btn"></button>
-
     <script>
-      const marker = document.querySelector("#animated-marker");
-      const overlay = document.getElementById("input-overlay");
-      const answerInput = document.getElementById("user-answer");
-      const submitBtn = document.getElementById("submit-answer");
-      const videoEl = document.querySelector("#vid1");
-      const unmuteBtn = document.getElementById("unmute-btn");
+      const marker = document.querySelector("#login-marker");
+      const overlay = document.getElementById("login-overlay");
+      const bodyEl = document.body;
 
-      // Show input and play video when marker detected
+      // Show login overlay when marker is found
       marker.addEventListener("markerFound", () => {
-        overlay.style.display = "block";
-        unmuteBtn.style.display = "block";
-        videoEl.play();
+        overlay.style.display = "flex";
+        bodyEl.classList.add("overlay-active");
       });
 
-      // Hide input and pause video when marker lost
+      // Hide login overlay when marker lost (optional)
       marker.addEventListener("markerLost", () => {
         overlay.style.display = "none";
-        videoEl.pause();
+        bodyEl.classList.remove("overlay-active");
       });
 
-      // Unmute button functionality
-      unmuteBtn.addEventListener("click", () => {
-        videoEl.muted = false;
-        videoEl.play();
-        unmuteBtn.style.display = "none";
+      // Dummy login for now
+      document.getElementById("login-btn").addEventListener("click", () => {
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+
+        if(username && password){
+          alert(Logged in as ${username});
+          overlay.style.display = "none";
+          bodyEl.classList.remove("overlay-active");
+        } else {
+          alert("Please enter both username and password.");
+        }
       });
-
-      // Simple answer check example
-const hiddenMarkerDiv = document.getElementById('hidden-marker'); // make sure this div exists in your HTML
-
-submitBtn.addEventListener("click", async () => {
-  const val = answerInput.value.trim().toLowerCase();
-  if (!val) return;
-
-  try {
-    // Send to server for validation
-    const response = await fetch('https://YOUR_SERVER/validate.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: 'USER_UNIQUE_ID', // replace dynamically per user/session
-        answer: val
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.showHiddenMarker) {
-      hiddenMarkerDiv.style.display = 'block';
-      alert("Correct! Hidden marker revealed.");
-      answerInput.value = "";
-    } else {
-      alert(data.message || "Try again!");
-    }
-  } catch (err) {
-    console.error("Server error:", err);
-    alert("Unable to validate answer. Try again later.");
-  }
-});
-
     </script>
-  </body>
+  </body>
 </html>
