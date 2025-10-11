@@ -1,121 +1,89 @@
 <!doctype html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <style>
-      body { margin: 0; font-family: sans-serif; }
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
-      /* Blur background when overay active */
-      body.overlay-active *:not(#login-overlay) {
-        filter: blur(6px);
-        pointer-events: none;
-      }
+    #login-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
 
-      /* Login overlay full screen */
-      #login-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0,0,0,0.7);
-        z-index: 9999;
-        flex-direction: column;
-        gap: 12px;
-      }
+    #login-box {
+      background: rgba(255,255,255,0.9);
+      padding: 20px 30px;
+      border-radius: 12px;
+      text-align: center;
+    }
 
-      #login-overlay img {
-        width: 120px;
-        height: auto;
-        margin-bottom: 16px;
-      }
+    #login-box img {
+      width: 150px;
+      height: 150px;
+      margin-bottom: 16px;
+    }
 
-      #login-overlay input {
-        width: 250px;
-        padding: 10px;
-        font-size: 1rem;
-        border-radius: 4px;
-        border: none;
-      }
+    #login-box h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
 
-      #login-overlay button {
-        width: 270px;
-        padding: 10px;
-        font-size: 1rem;
-        border-radius: 4px;
-        border: none;
-        background-color: #28a745;
-        color: white;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-
-  <body>
-    <!-- AR Scene -->
-    <a-scene
-      embedded
-      vr-mode-ui="enabled: false"
-      loading-screen="enabled: false"
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+<body>
+  <!-- AR Scene -->
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    loading-screen="enabled: false"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+  >
+    <a-marker
+      id="login-marker"
+      type="pattern"
+      preset="custom"
+      url="marker.patt"
+      emitevents="true"
     >
-      <!-- Marker -->
-      <a-marker
-        id="login-marker"
-        type="pattern"
-        preset="custom"
-        url="marker.patt"
-        emitevents="true"
-      >
-        <!-- Just an empty entity for detection -->
-        <a-entity></a-entity>
-      </a-marker>
-      <a-entity camera></a-entity>
-    </a-scene>
+      <a-entity position="0 0 0">
+        <a-plane src="marker.png" width="1" height="1"></a-plane>
+      </a-entity>
+    </a-marker>
 
-    <!-- Login overlay -->
-    <div id="login-overlay" style="display:none;">
-      <img src="marker.png" alt="Login Marker" />
-      <input type="text" placeholder="Username" id="login-username" />
-      <input type="password" placeholder="Password" id="login-password" />
-      <button id="login-btn">Login</button>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay">
+    <div id="login-box">
+      <img src="marker.png" alt="AR Marker" />
+      <h2>Login</h2>
     </div>
+  </div>
 
-    <script>
-      const marker = document.querySelector("#login-marker");
-      const overlay = document.getElementById("login-overlay");
-      const bodyEl = document.body;
+  <script>
+    const marker = document.querySelector("#login-marker");
+    const overlay = document.getElementById("login-overlay");
 
-      // Show login overlay when marker is found
-      marker.addEventListener("markerFound", () => {
-        overlay.style.display = "flex";
-        bodyEl.classList.add("overlay-active");
-      });
+    marker.addEventListener("markerFound", () => {
+      overlay.style.display = "flex";
+    });
 
-      // Hide login overlay when marker lost (optional)
-      marker.addEventListener("markerLost", () => {
-        overlay.style.display = "none";
-        bodyEl.classList.remove("overlay-active");
-      });
-
-      // Dummy login for now
-      document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
-
-        if(username && password){
-          alert(Logged in as ${username});
-          overlay.style.display = "none";
-          bodyEl.classList.remove("overlay-active");
-        } else {
-          alert("Please enter both username and password.");
-        }
-      });
-    </script>
-  </body>
+    marker.addEventListener("markerLost", () => {
+      overlay.style.display = "none";
+    });
+  </script>
+</body>
 </html>
