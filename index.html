@@ -5,45 +5,43 @@
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
 
-      /* AR login overlay */
-      #ar-login {
+      #login-form {
         position: absolute;
-        display: none;
-        z-index: 2000;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        z-index: 2000;
+        display: none;
         text-align: center;
-        background: rgba(0,0,0,0.8);
-        padding: 20px 25px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 16px 20px;
         border-radius: 10px;
-        color: white;
       }
 
-      #ar-login h2 {
-        margin: 0 0 15px 0;
-        font-size: 1.2rem;
-      }
-
-      #ar-login input {
+      #login-form input {
         display: block;
-        width: 180px;
         margin: 8px auto;
         padding: 8px 10px;
+        width: 180px;
         border-radius: 5px;
         border: none;
+        font-size: 1rem;
       }
 
-      #ar-login button {
-        margin-top: 12px;
-        padding: 8px 15px;
-        border: none;
+      #login-form button {
+        padding: 8px 12px;
         border-radius: 5px;
+        border: none;
         background-color: #28a745;
         color: white;
         cursor: pointer;
+        font-size: 1rem;
       }
     </style>
   </head>
@@ -55,42 +53,42 @@
       loading-screen="enabled: false"
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
     >
-      <a-marker type="pattern" url="marker.patt" id="login-marker" emitevents="true"></a-marker>
+      <a-marker
+        id="login-marker"
+        type="pattern"
+        preset="custom"
+        url="assets/marker.patt"
+        emitevents="true"
+      >
+        <a-image src="assets/asset.png" rotation="-90 0 0" scale="1 1 1"></a-image>
+      </a-marker>
+
       <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- AR login overlay -->
-    <div id="ar-login">
-      <h2>Login</h2>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button id="login-btn">Submit</button>
+    <!-- Login Form -->
+    <div id="login-form">
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="login-btn">Login</button>
     </div>
 
     <script>
       const marker = document.getElementById("login-marker");
-      const loginOverlay = document.getElementById("ar-login");
+      const loginForm = document.getElementById("login-form");
 
-      // Show overlay when marker detected
       marker.addEventListener("markerFound", () => {
-        loginOverlay.style.display = "block";
+        loginForm.style.display = "block";
       });
 
-      // Hide overlay when marker lost
       marker.addEventListener("markerLost", () => {
-        loginOverlay.style.display = "none";
+        loginForm.style.display = "none";
       });
 
-      // Dummy login
       document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-        if (!username || !password) {
-          alert("Please fill both fields.");
-          return;
-        }
-        alert(Dummy login: ${username} / ${password});
-        loginOverlay.style.display = "none"; // Hide after login
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        alert(`Username: ${username}\nPassword: ${password}`);
       });
     </script>
   </body>
