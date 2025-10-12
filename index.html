@@ -1,99 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://rawcdn.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <title>AR Login</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/2.2.1/aframe/build/aframe-ar.min.js"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
-        font-family: sans-serif;
       }
-
       #login-form {
+        display: none;
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 2000;
-        display: none;
-        text-align: center;
-        background: rgba(0, 0, 0, 0.65);
-        padding: 16px 20px;
-        border-radius: 10px;
-      }
-
-      #login-form input {
-        display: block;
-        margin: 8px auto;
-        padding: 8px 10px;
-        width: 180px;
-        border-radius: 5px;
-        border: none;
-        font-size: 1rem;
-      }
-
-      #login-form button {
-        padding: 8px 12px;
-        border-radius: 5px;
-        border: none;
-        background-color: #28a745;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 20px;
+        border-radius: 15px;
         color: white;
+        text-align: center;
+      }
+      input {
+        display: block;
+        margin: 10px auto;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #00ffcc;
+        color: black;
+        font-weight: bold;
         cursor: pointer;
-        font-size: 1rem;
       }
     </style>
   </head>
 
   <body>
+    <div id="login-form">
+      <h2>AR Login</h2>
+      <input type="text" placeholder="Username" id="username" />
+      <input type="password" placeholder="Password" id="password" />
+      <button onclick="alert('Logged in!')">Login</button>
+    </div>
+
     <a-scene
       embedded
-      vr-mode-ui="enabled: false"
-      loading-screen="enabled: false"
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      id="scene"
+      arjs="sourceType: webcam; debugUIEnabled: false;"
     >
-      <a-marker
-        id="login-marker"
-        type="pattern"
-        url="assets/marker.patt"
-        emitevents="true"
-      >
-        <a-image src="assets/asset.png" rotation="-90 0 0" scale="1 1 1"></a-image>
+      <a-marker type="pattern" url="marker.patt" id="marker">
+        <a-box position="0 0.5 0" material="color: cyan;"></a-box>
       </a-marker>
-
       <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- Login Form -->
-    <div id="login-form">
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <button id="login-btn">Login</button>
-    </div>
-
     <script>
-      window.addEventListener("load", () => {
-        const marker = document.querySelector("#login-marker");
-        const form = document.getElementById("login-form");
+      const marker = document.querySelector("#marker");
+      const form = document.querySelector("#login-form");
 
-        // Make sure AR.js emits events correctly
-        marker.addEventListener("markerFound", () => {
-          console.log("Marker found");
-          form.style.display = "block";
-        });
+      marker.addEventListener("markerFound", () => {
+        form.style.display = "block";
+      });
 
-        marker.addEventListener("markerLost", () => {
-          console.log("Marker lost");
-          form.style.display = "none";
-        });
-
-        document.getElementById("login-btn").addEventListener("click", () => {
-          const u = document.getElementById("username").value;
-          const p = document.getElementById("password").value;
-          alert(`Username: ${u}\nPassword: ${p}`);
-        });
+      marker.addEventListener("markerLost", () => {
+        form.style.display = "none";
       });
     </script>
   </body>
