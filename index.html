@@ -1,102 +1,48 @@
-<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+<div id="login-overlay">
+  <div class="login-box">
+    <img src="C:\Users\Administrator\Pictures\marker.png" alt="AR Marker" class="marker-img" />
+    <h2>Login</h2>
+  </div>
+</div>
 
-      /* AR Login Overlay */
-      #ar-login {
-        position: absolute;
-        z-index: 2000;
-        display: none;
-        background: rgba(0,0,0,0.8);
-        padding: 20px 24px;
-        border-radius: 12px;
-        color: white;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-      }
+<style>
+  /* Full-page overlay */
+  #login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.5); /* optional semi-transparent overlay */
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-      #ar-login input {
-        display: block;
-        width: 200px;
-        margin: 10px auto;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: none;
-      }
+  /* Centered login box */
+  .login-box {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 40px 60px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
 
-      #ar-login button {
-        margin-top: 12px;
-        padding: 8px 14px;
-        border-radius: 6px;
-        border: none;
-        background-color: #28a745;
-        color: white;
-        cursor: pointer;
-      }
-    </style>
-  </head>
+  /* Marker image styling */
+  .marker-img {
+    max-width: 200px;
+    width: 100%;
+    display: block;
+    margin: 0 auto 20px auto;
+  }
 
-  <body>
-    <a-scene
-      vr-mode-ui="enabled: false"
-      loading-screen="enabled: false"
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      embedded
-      gesture-detector
-    >
-      <!-- Marker for AR login -->
-      <a-marker
-        id="login-marker"
-        type="pattern"
-        preset="custom"
-        url="marker.patt"
-        emitevents="true"
-      ></a-marker>
-
-      <a-entity camera></a-entity>
-    </a-scene>
-
-    <!-- Login Overlay -->
-    <div id="ar-login">
-      <h3>Login</h3>
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button id="login-btn">Submit</button>
-    </div>
-
-    <script>
-      const marker = document.getElementById("login-marker");
-      const loginOverlay = document.getElementById("ar-login");
-
-      marker.addEventListener("markerFound", () => {
-        loginOverlay.style.display = "block";
-      });
-
-      marker.addEventListener("markerLost", () => {
-        loginOverlay.style.display = "none";
-      });
-
-      document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        if (!username || !password) {
-          alert("Please fill both fields.");
-          return;
-        }
-
-        // Placeholder login action
-        alert(`Username: ${username}\nPassword: ${password}`);
-      });
-    </script>
-  </body>
-</html>
+  /* Login text */
+  .login-box h2 {
+    font-family: sans-serif;
+    font-size: 1.8rem;
+    color: #333;
+    margin: 0;
+  }
+</style>
