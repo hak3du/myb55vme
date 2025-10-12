@@ -1,73 +1,102 @@
 <!doctype html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
-        /* AR login overlay */
-        #ar-login {
-            position: absolute;
-            z-index: 2000;
-            display: none;
-            background: rgba(0,0,0,0.7);
-            padding: 20px 25px;
-            border-radius: 10px;
-            text-align: center;
-            color: white;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
+      /* AR Login Overlay */
+      #ar-login {
+        position: absolute;
+        z-index: 2000;
+        display: none;
+        background: rgba(0,0,0,0.8);
+        padding: 20px 24px;
+        border-radius: 12px;
+        color: white;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
 
-        #ar-login input {
-            display: block;
-            width: 180px;
-            padding: 8px 10px;
-            margin: 8px auto;
-            border-radius: 5px;
-            border: none;
-        }
+      #ar-login input {
+        display: block;
+        width: 200px;
+        margin: 10px auto;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: none;
+      }
 
-        #ar-login button {
-            padding: 8px 12px;
-            border-radius: 5px;
-            border: none;
-            background-color: #28a745;
-            color: white;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+      #ar-login button {
+        margin-top: 12px;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: none;
+        background-color: #28a745;
+        color: white;
+        cursor: pointer;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <a-scene
-        vr-mode-ui="enabled: false;"
-        loading-screen="enabled: false;"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-        embedded
-        gesture-detector
+      vr-mode-ui="enabled: false"
+      loading-screen="enabled: false"
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+      embedded
+      gesture-detector
     >
-        <a-marker
-            id="login-marker"
-            type="pattern"
-            preset="custom"
-            url="marker.patt"
-            emitevents="true"
-        >
-            <a-image
-                src="marker.png"
-                scale="1 1 1"
-                rotation="-90 0 0"
-            ></a-image>
-        </a-marker>
+      <!-- Marker for AR login -->
+      <a-marker
+        id="login-marker"
+        type="pattern"
+        preset="custom"
+        url="marker.patt"
+        emitevents="true"
+      ></a-marker>
 
-        <a-entity camera></a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- AR Login
+    <!-- Login Overlay -->
+    <div id="ar-login">
+      <h3>Login</h3>
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button id="login-btn">Submit</button>
+    </div>
+
+    <script>
+      const marker = document.getElementById("login-marker");
+      const loginOverlay = document.getElementById("ar-login");
+
+      marker.addEventListener("markerFound", () => {
+        loginOverlay.style.display = "block";
+      });
+
+      marker.addEventListener("markerLost", () => {
+        loginOverlay.style.display = "none";
+      });
+
+      document.getElementById("login-btn").addEventListener("click", () => {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!username || !password) {
+          alert("Please fill both fields.");
+          return;
+        }
+
+        // Placeholder login action
+        alert(`Username: ${username}\nPassword: ${password}`);
+      });
+    </script>
+  </body>
+</html>
