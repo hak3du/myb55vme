@@ -8,7 +8,7 @@
     <style>
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
-      /* AR login oerlay */
+      /* AR login overlay */
       #ar-login {
         position: absolute;
         z-index: 9999;
@@ -40,7 +40,7 @@
       }
 
       #ar-login button {
-        margin-top: 15px;
+        margin: 10px 5px 0 5px;
         padding: 10px 16px;
         border-radius: 5px;
         border: none;
@@ -48,6 +48,12 @@
         color: white;
         font-size: 1rem;
         cursor: pointer;
+      }
+
+      #login-message {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: red;
       }
     </style>
   </head>
@@ -66,7 +72,6 @@
         id="login-marker"
         emitevents="true"
       >
-        <!-- You can optionally add a placeholder 3D object here -->
         <a-box position="0 0.5 0" material="color: blue; opacity: 0.5;"></a-box>
       </a-marker>
 
@@ -75,39 +80,70 @@
 
     <!-- AR Login Overlay -->
     <div id="ar-login">
-      <h2>Login</h2>
+      <h2>Authentication</h2>
       <input type="text" id="username" placeholder="Username" />
       <input type="password" id="password" placeholder="Password" />
-      <button id="login-btn">Submit</button>
+      <div>
+        <button id="login-btn">Login</button>
+        <button id="register-btn">Register</button>
+      </div>
+      <div id="login-message"></div>
     </div>
 
     <script>
       const marker = document.querySelector("#login-marker");
       const loginOverlay = document.getElementById("ar-login");
+      const loginMessage = document.getElementById("login-message");
 
-      // Show inputs when marker detected
+      // Show overlay when marker detected
       marker.addEventListener("markerFound", () => {
         loginOverlay.style.display = "block";
       });
 
-      // Hide inputs when marker lost
+      // Hide overlay when marker lost
       marker.addEventListener("markerLost", () => {
         loginOverlay.style.display = "none";
       });
 
-      // Dummy submit action
-      document.getElementById("login-btn").addEventListener("click", () => {
+      // Common function for login/register
+      async function handleAuth(action) {
         const username = document.getElementById("username").value.trim();
         const password = document.getElementById("password").value.trim();
 
         if (!username || !password) {
-          alert("Please enter both username and password.");
+          loginMessage.style.color = "red";
+          loginMessage.textContent = "Please enter both username and password.";
           return;
         }
 
-        alert(`Dummy login: ${username} / ${password}`);
-        // Eventually, send this info securely to your main site to unlock
-      });
+        try {
+          const res = await fetch(`http://localhost:8001/${action}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            loginMessage.style.color = "green";
+            loginMessage.textContent = data.message;
+            loginOverlay.style.display = "none"; // hide overlay on success
+            // TODO: store token or session if needed
+          } else {
+            loginMessage.style.color = "red";
+            loginMessage.textContent = data.detail || "Error occurred";
+          }
+        } catch (err) {
+          console.error(err);
+          loginMessage.style.color = "red";
+          loginMessage.textContent = "Cannot reach server. Try again.";
+        }
+      }
+
+      // Button listeners
+      document.getElementById("login-btn").addEventListener("click", () => handleAuth("login"));
+      document.getElementById("register-btn").addEventListener("click", () => handleAuth("register"));
     </script>
   </body>
 </html>
