@@ -2,8 +2,8 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://rawcdn.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
       body {
         margin: 0;
@@ -19,7 +19,7 @@
         z-index: 2000;
         display: none;
         text-align: center;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.65);
         padding: 16px 20px;
         border-radius: 10px;
       }
@@ -52,11 +52,11 @@
       vr-mode-ui="enabled: false"
       loading-screen="enabled: false"
       arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+      id="scene"
     >
       <a-marker
         id="login-marker"
         type="pattern"
-        preset="custom"
         url="assets/marker.patt"
         emitevents="true"
       >
@@ -74,21 +74,26 @@
     </div>
 
     <script>
-      const marker = document.getElementById("login-marker");
-      const loginForm = document.getElementById("login-form");
+      window.addEventListener("load", () => {
+        const marker = document.querySelector("#login-marker");
+        const form = document.getElementById("login-form");
 
-      marker.addEventListener("markerFound", () => {
-        loginForm.style.display = "block";
-      });
+        // Make sure AR.js emits events correctly
+        marker.addEventListener("markerFound", () => {
+          console.log("Marker found");
+          form.style.display = "block";
+        });
 
-      marker.addEventListener("markerLost", () => {
-        loginForm.style.display = "none";
-      });
+        marker.addEventListener("markerLost", () => {
+          console.log("Marker lost");
+          form.style.display = "none";
+        });
 
-      document.getElementById("login-btn").addEventListener("click", () => {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        alert(`Username: ${username}\nPassword: ${password}`);
+        document.getElementById("login-btn").addEventListener("click", () => {
+          const u = document.getElementById("username").value;
+          const p = document.getElementById("password").value;
+          alert(`Username: ${u}\nPassword: ${p}`);
+        });
       });
     </script>
   </body>
