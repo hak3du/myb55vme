@@ -8,27 +8,46 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
-    /* Full-page overlay */
+    /* AR Overlay */
     #login-overlay {
       position: fixed;
-      top:0; left:0; width:100%; height:100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(0,0,0,0.5);
-      display:flex; justify-content:center; align-items:center;
-      z-index:9999;
-      display: none; /* initially hidden */
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    #login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .login-box {
-      background: rgba(255,255,255,0.95);
-      padding: 40px 60px; border-radius:12px;
-      text-align:center; box-shadow:0 8px 20px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.9);
+      padding: 40px 60px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
 
-    .login-box input { display:block; width:200px; margin:10px auto; padding:8px; border-radius:5px; border:1px solid #ccc; }
-    .login-box button { margin:10px 5px; padding:10px 16px; border:none; border-radius:5px; background:#28a745; color:white; cursor:pointer; }
-    .login-box h2 { margin:0 0 20px; font-size:1.8rem; color:#333; }
-    #login-message { margin-top:10px; font-size:0.9rem; color:red; }
-    .marker-img { max-width: 150px; margin-bottom: 20px; display:block; margin-left:auto; margin-right:auto; }
+    .marker-img {
+      max-width: 200px;
+      width: 100%;
+      display: block;
+      margin: 0 auto 20px auto;
+    }
+
+    .login-box h2 {
+      font-family: sans-serif;
+      font-size: 1.8rem;
+      color: #333;
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -47,36 +66,28 @@
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- Login Overlay -->
+  <!-- Overlay -->
   <div id="login-overlay">
     <div class="login-box">
       <img src="marker.png" alt="AR Marker" class="marker-img" />
-      <h2>Login</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <div>
-        <button id="login-btn">Login</button>
-        <button id="register-btn">Register</button>
-      </div>
-      <div id="login-message"></div>
+      <h2>Scan Marker to Login</h2>
     </div>
   </div>
 
   <script>
     const marker = document.getElementById("login-marker");
     const loginOverlay = document.getElementById("login-overlay");
-    const loginMessage = document.getElementById("login-message");
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
 
     const BACKEND = "https://betty-stack-improving-passengers.trycloudflare.com";
 
     // Show overlay when marker detected
-    marker.addEventListener("markerFound", () => loginOverlay.style.display = "flex");
-    marker.addEventListener("markerLost", () => loginOverlay.style.display = "none");
+    marker.addEventListener("markerFound", () => loginOverlay.classList.remove("hidden"));
+    marker.addEventListener("markerLost", () => loginOverlay.classList.add("hidden"));
 
     // ---------------------------
-    // VERIFY TOKEN
+    // VERIFY TOKEN FUNCTION
     // ---------------------------
     async function verifyUserToken(token) {
       try {
@@ -85,17 +96,19 @@
           headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
+
         if (res.ok && data.username) {
-          loginOverlay.style.display = "none";
+          loginOverlay.classList.add("hidden");
           console.log("Overlay removed for user:", data.username);
 
-          // AR feedback
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
           return true;
+        } else {
+          console.warn("Invalid token");
+          return false;
         }
-        return false;
       } catch (err) {
         console.error("Token verification failed:", err);
         return false;
@@ -114,52 +127,16 @@
     });
 
     // ---------------------------
-    // HANDLE LOGIN / REGISTER
+    // LISTEN FOR AR SCENE SUCCESS (from phone)
     // ---------------------------
-    async function handleAuth(action) {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      if (!username || !password) {
-        loginMessage.style.color = "red";
-        loginMessage.textContent = "Enter both username and password";
-        return;
+    window.addEventListener("message", async (event) => {
+      if (event.data?.type === "AR_LOGIN_SUCCESS" && event.data.token) {
+        const token = event.data.token;
+        localStorage.setItem("userToken", token);
+        const valid = await verifyUserToken(token);
+        if (!valid) localStorage.removeItem("userToken");
       }
-
-      try {
-        const res = await fetch(`${BACKEND}/${action}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
-
-        if (res.ok && data.token) {
-          localStorage.setItem("userToken", data.token);
-          loginOverlay.style.display = "none";
-          loginMessage.style.color = "green";
-          loginMessage.textContent = data.message || "Success!";
-
-          // AR feedback
-          arBox.setAttribute("color", "lime");
-          successText.setAttribute("value", "Access Granted");
-          successText.setAttribute("visible", "true");
-
-          // optional: send token to parent
-          window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token: data.token }, "*");
-        } else {
-          loginMessage.style.color = "red";
-          loginMessage.textContent = data.detail || "Invalid credentials";
-        }
-      } catch (err) {
-        console.error(err);
-        loginMessage.style.color = "red";
-        loginMessage.textContent = "Cannot reach server";
-      }
-    }
-
-    document.getElementById("login-btn").addEventListener("click", () => handleAuth("login"));
-    document.getElementById("register-btn").addEventListener("click", () => handleAuth("register"));
+    });
   </script>
 </body>
 </html>
