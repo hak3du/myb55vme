@@ -7,9 +7,50 @@
 
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
+
+    /* Overlay container */
+    #login-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    #login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .login-box {
+      background: rgba(255,255,255,0.9);
+      padding: 40px 60px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .marker-img {
+      max-width: 200px;
+      width: 100%;
+      display: block;
+      margin: 0 auto 20px auto;
+    }
+
+    .login-box h2 {
+      font-family: sans-serif;
+      font-size: 1.8rem;
+      color: #333;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
+
   <!-- AR Scene -->
   <a-scene
     embedded
@@ -24,14 +65,23 @@
     <a-entity camera></a-entity>
   </a-scene>
 
+  <!-- Overlay -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <img src="marker.png" alt="AR Marker" class="marker-img" />
+      <h2>Welcome! Scan the AR Marker to Login</h2>
+    </div>
+  </div>
+
   <script>
     const marker = document.getElementById("login-marker");
+    const loginOverlay = document.getElementById("login-overlay");
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
     const BACKEND = "https://betty-stack-improving-passengers.trycloudflare.com";
 
     // ---------------------------
-    // VERIFY TOKEN FUNCTION
+    // Verify token from backend
     // ---------------------------
     async function verifyUserToken(token) {
       try {
@@ -42,7 +92,10 @@
         const data = await res.json();
 
         if (res.ok && data.username) {
+          loginOverlay.classList.add("hidden"); // hide overlay
           console.log("User recognized:", data.username);
+
+          // AR visual feedback
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
@@ -56,7 +109,7 @@
     }
 
     // ---------------------------
-    // ON PAGE LOAD → CHECK TOKEN
+    // On page load → check existing token
     // ---------------------------
     document.addEventListener("DOMContentLoaded", async () => {
       const token = localStorage.getItem("userToken");
@@ -67,19 +120,23 @@
     });
 
     // ---------------------------
-    // WHEN MARKER IS SCANNED
+    // When marker is scanned
     // ---------------------------
     marker.addEventListener("markerFound", async () => {
-      // Ask backend: "who is scanning this marker?"
-      const res = await fetch(`${BACKEND}/get-token-for-marker`, {
-        method: "POST",
-        body: JSON.stringify({ markerId: "marker.patt" }),
-        headers: { "Content-Type": "application/json" }
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("userToken", data.token);
-        await verifyUserToken(data.token);
+      try {
+        const res = await fetch(`${BACKEND}/get-token-for-marker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ markerId: "marker.patt" })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem("userToken", data.token);
+          await verifyUserToken(data.token);
+        }
+      } catch (err) {
+        console.error("Error getting token for marker:", err);
       }
     });
   </script>
