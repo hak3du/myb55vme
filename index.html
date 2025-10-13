@@ -114,15 +114,23 @@
 
         const data = await res.json();
 
-        if (res.ok) {
-          loginMessage.style.color = "green";
-          loginMessage.textContent = data.message;
-          loginOverlay.style.display = "none";
+if (res.ok) {
+  loginMessage.style.color = "green";
+  loginMessage.textContent = data.message;
+  loginOverlay.style.display = "none";
 
-          // AR feedback
-          arBox.setAttribute("color", "lime");
-          successText.setAttribute("value", "Access Granted");
-          successText.setAttribute("visible", "true");
+  // -------------------------------
+  // STORE TOKEN FOR WEBSITE
+  // -------------------------------
+  localStorage.setItem("userToken", data.token); // backend must send token
+  // -------------------------------
+
+  // AR feedback
+  arBox.setAttribute("color", "lime");
+  successText.setAttribute("value", "Access Granted");
+  successText.setAttribute("visible", "true");
+}
+
         } else {
           loginMessage.style.color = "red";
           loginMessage.textContent = data.detail || "Error occurred";
