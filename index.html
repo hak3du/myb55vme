@@ -1,14 +1,23 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AR Login Scene</title>
+
+  <!-- A-Frame & AR.js -->
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    /* General body */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
 
-    /* AR login overlay */
+    /* AR Login Overlay */
     #ar-login {
       position: absolute;
       z-index: 9999;
@@ -23,16 +32,22 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
 
-    #ar-login h2 { margin-bottom: 20px; font-size: 1.8rem; color: #333; }
+    #ar-login h2 {
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      color: #333;
+    }
+
     #ar-login input {
       display: block;
-      width: 200px;
+      width: 220px;
       margin: 10px auto;
       padding: 8px;
       border-radius: 5px;
       border: 1px solid #ccc;
       font-size: 1rem;
     }
+
     #ar-login button {
       margin: 10px 5px 0 5px;
       padding: 10px 16px;
@@ -43,11 +58,17 @@
       font-size: 1rem;
       cursor: pointer;
     }
-    #login-message { margin-top: 10px; font-size: 0.9rem; color: red; }
+
+    #login-message {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: red;
+    }
   </style>
 </head>
 
 <body>
+
   <!-- AR Scene -->
   <a-scene
     embedded
@@ -66,8 +87,8 @@
   <!-- AR Login Overlay -->
   <div id="ar-login">
     <h2>Authentication</h2>
-    <input type="text" id="username" placeholder="Username" />
-    <input type="password" id="password" placeholder="Password" />
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
     <div>
       <button id="login-btn">Login</button>
       <button id="register-btn">Register</button>
@@ -76,25 +97,29 @@
   </div>
 
   <script>
-    const marker = document.querySelector("#login-marker");
+    // Elements
+    const marker = document.getElementById("login-marker");
     const loginOverlay = document.getElementById("ar-login");
     const loginMessage = document.getElementById("login-message");
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
 
-    // Show overlay when marker detected
+    // Marker events
     marker.addEventListener("markerFound", () => {
-      console.log("✅ Marker found");
+      console.log("✅ Marker detected");
       loginOverlay.style.display = "block";
     });
-
-    // Hide overlay when marker lost
     marker.addEventListener("markerLost", () => {
       console.log("❌ Marker lost");
       loginOverlay.style.display = "none";
     });
 
-    // Login/register handler
+    // Backend URL
+    const API_BASE = "https://betty-stack-improving-passengers.trycloudflare.com";
+
+    // -------------------------
+    // Handle login/register
+    // -------------------------
     async function handleAuth(action) {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -106,10 +131,10 @@
       }
 
       try {
-        const res = await fetch(`https://betty-stack-improving-passengers.trycloudflare.com/${action}`, {
+        const res = await fetch(`${API_BASE}/${action}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password })
         });
 
         const data = await res.json();
@@ -119,13 +144,13 @@
           loginMessage.textContent = data.message || "Success!";
           loginOverlay.style.display = "none";
 
-          // Store token locally for main website
+          // Save token
           localStorage.setItem("userToken", data.token);
 
-          // Send token to parent window
+          // Send to parent window for AR integration
           window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token: data.token }, "*");
 
-          // AR feedback
+          // AR Feedback
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
@@ -134,12 +159,13 @@
           loginMessage.textContent = data.detail || "Error occurred";
         }
       } catch (err) {
-        console.error(err);
+        console.error("Login/Register Error:", err);
         loginMessage.style.color = "red";
         loginMessage.textContent = "Cannot reach server. Try again.";
       }
     }
 
+    // Event listeners
     document.getElementById("login-btn").addEventListener("click", () => handleAuth("login"));
     document.getElementById("register-btn").addEventListener("click", () => handleAuth("register"));
   </script>
