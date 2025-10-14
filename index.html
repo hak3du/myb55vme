@@ -4,7 +4,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fingerprintjs2@2.1.0/dist/fingerprint2.min.js"></script>
 </head>
 <body style="margin:0; overflow:hidden;">
 
@@ -22,94 +21,68 @@
     <a-entity camera></a-entity>
   </a-scene>
 
+  <!-- UI Buttons -->
+  <div style="position: fixed; top: 20px; left: 20px; z-index: 9999; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px;">
+    <input type="text" id="username" placeholder="Username" style="margin-bottom: 5px; width: 100%;" />
+    <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; width: 100%;" />
+    <button onclick="registerUser()">Register</button>
+    <button onclick="loginUser()">Login</button>
+  </div>
+
   <script>
-    const marker = document.getElementById("login-marker");
+    const BACKEND = "https://pointed-filter-glasses-pay.trycloudflare.com";
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
-    const BACKEND = "https://pointed-filter-glasses-pay.trycloudflare.com";
-    const USERNAME = "testuer"; // Replace with actual username or dynamic input
 
-    async function getDeviceId() {
-      return new Promise((resolve) => {
-        Fingerprint2.get((components) => {
-          const values = components.map((c) => c.value).join('');
-          sha256(values).then(resolve);
-        });
-      });
-    }
+    async function registerUser() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!username || !password) return alert("Please enter both fields");
 
-    function sha256(str) {
-      const buffer = new TextEncoder("utf-8").encode(str);
-      return crypto.subtle.digest("SHA-256", buffer).then((hash) => {
-        return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
-      });
-    }
-
-    async function createSession() {
-      console.log("[AR] Creating session...");
-      const res = await fetch(`${BACKEND}/create-session`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to create session");
-      return await res.json();
-    }
-
-    async function computeHMAC(sessionId, challenge, deviceId) {
-      console.log("[AR] Computing HMAC...");
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode("SUPER_HMAC_SECRET_456!"),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-      const data = encoder.encode(`${sessionId}:${challenge}:${deviceId}`);
-      const signature = await crypto.subtle.sign("HMAC", key, data);
-      return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    async function confirmSession(sessionId, username, hmac, deviceId) {
-      console.log("[AR] Confirming session...");
-      const res = await fetch(`${BACKEND}/confirm-session/${sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, hmac, deviceId })
-      });
-      const data = await res.json();
-      console.log("[AR] Confirm response:", data);
-      return res.ok && data.status === "success";
-    }
-
-    async function getToken(sessionId) {
-      console.log("[AR] Requesting token...");
-      const res = await fetch(`${BACKEND}/session/${sessionId}/token`);
-      const data = await res.json();
-      console.log("[AR] Token received:", data.token);
-      return data.token;
-    }
-
-    marker.addEventListener("markerFound", async () => {
-      console.log("[AR] Marker detected");
       try {
-        const deviceId = await getDeviceId();
-        const session = await createSession();
-        const hmac = await computeHMAC(session.sessionId, session.challenge, deviceId);
-        const confirmed = await confirmSession(session.sessionId, USERNAME, hmac, deviceId);
+        const res = await fetch(`${BACKEND}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("Registration successful");
+        } else {
+          alert(data.detail || "Registration failed");
+        }
+      } catch (err) {
+        console.error("Register error:", err);
+        alert("Error registering user");
+      }
+    }
 
-        if (confirmed) {
-          const token = await getToken(session.sessionId);
-          localStorage.setItem("userToken", token);
-          window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token }, "*");
+    async function loginUser() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!username || !password) return alert("Please enter both fields");
 
+      try {
+        const res = await fetch(`${BACKEND}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          localStorage.setItem("userToken", data.token);
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
+          window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token: data.token }, "*");
         } else {
-          console.warn("[AR] Session confirmation failed");
+          alert(data.detail || "Login failed");
         }
       } catch (err) {
-        console.error("[AR] Handshake error:", err);
+        console.error("Login error:", err);
+        alert("Error logging in");
       }
-    });
+    }
   </script>
 </body>
 </html>
