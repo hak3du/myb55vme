@@ -21,8 +21,8 @@
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- UI Buttons -->
-  <div style="position: fixed; top: 20px; left: 20px; z-index: 9999; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px;">
+  <!-- UI Buttons (initially hidden) -->
+  <div id="auth-ui" style="display: none; position: fixed; top: 20px; left: 20px; z-index: 9999; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px;">
     <input type="text" id="username" placeholder="Username" style="margin-bottom: 5px; width: 100%;" />
     <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; width: 100%;" />
     <button onclick="registerUser()">Register</button>
@@ -33,6 +33,18 @@
     const BACKEND = "https://purposes-commander-settlement-mustang.trycloudflare.com";
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
+    const authUI = document.getElementById("auth-ui");
+    const marker = document.getElementById("login-marker");
+
+    marker.addEventListener("markerFound", () => {
+      console.log("[AR] Marker found — showing login/register UI");
+      authUI.style.display = "block";
+    });
+
+    marker.addEventListener("markerLost", () => {
+      console.log("[AR] Marker lost — hiding login/register UI");
+      authUI.style.display = "none";
+    });
 
     async function registerUser() {
       const username = document.getElementById("username").value.trim();
