@@ -4,6 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fingerprintjs2@2.1.0/dist/fingerprint2.min.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
@@ -80,9 +81,75 @@
     const successText = document.getElementById("success-text");
     const BACKEND = "https://betty-stack-improving-passengers.trycloudflare.com";
 
-    // ---------------------------
-    // Verify token from backend
-    // ---------------------------
+    // -------------------------------------------------
+    // Fingerprint: unique device ID
+    // -------------------------------------------------
+    async function getDeviceId() {
+      return new Promise((resolve) => {
+        Fingerprint2.get((components) => {
+          const values = components.map((c) => c.value).join('');
+          const hash = sha256(values);
+          resolve(hash);
+        });
+      });
+    }
+
+    function sha256(str) {
+      const buffer = new TextEncoder("utf-8").encode(str);
+      return crypto.subtle.digest("SHA-256", buffer).then((hash) => {
+        return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      });
+    }
+
+    // -------------------------------------------------
+    // Step 1: Create new session
+    // -------------------------------------------------
+    async function createSession() {
+      const res = await fetch(`${BACKEND}/create-session`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to create session");
+      const data = await res.json();
+      console.log("Session created:", data);
+      return data; // {sessionId, challenge, ttl_seconds}
+    }
+
+    // -------------------------------------------------
+    // Step 2: Compute HMAC with session+challenge+deviceId
+    // -------------------------------------------------
+    async function computeHMAC(sessionId, challenge, deviceId) {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode("SUPER_HMAC_SECRET_456!"),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      const data = encoder.encode(`${sessionId}:${challenge}:${deviceId}`);
+      const signature = await crypto.subtle.sign("HMAC", key, data);
+      const hex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("");
+      return hex;
+    }
+
+    // -------------------------------------------------
+    // Step 3: Confirm session with backend
+    // -------------------------------------------------
+    async function confirmSession(sessionId, token, hmac, deviceId) {
+      const res = await fetch(`${BACKEND}/confirm-session/${sessionId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ hmac, deviceId })
+      });
+      const data = await res.json();
+      console.log("Confirm-session response:", data);
+      return res.ok && data.status === "success";
+    }
+
+    // -------------------------------------------------
+    // Step 4: Verify token validity
+    // -------------------------------------------------
     async function verifyUserToken(token) {
       try {
         const res = await fetch(`${BACKEND}/verify-token`, {
@@ -90,53 +157,62 @@
           headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
-
         if (res.ok && data.username) {
-          loginOverlay.classList.add("hidden"); // hide overlay
-          console.log("User recognized:", data.username);
-
-          // AR visual feedback
+          console.log("User verified:", data.username);
+          loginOverlay.classList.add("hidden");
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
           return true;
         }
-        return false;
       } catch (err) {
-        console.error("Token verification failed:", err);
-        return false;
+        console.error("verifyUserToken error:", err);
       }
+      return false;
     }
 
-    // ---------------------------
-    // On page load → check existing token
-    // ---------------------------
+    // -------------------------------------------------
+    // Step 5: On load, try auto-login via existing token
+    // -------------------------------------------------
     document.addEventListener("DOMContentLoaded", async () => {
       const token = localStorage.getItem("userToken");
       if (token) {
         const valid = await verifyUserToken(token);
-        if (!valid) localStorage.removeItem("userToken");
+        if (!valid) {
+          localStorage.removeItem("userToken");
+          console.log("Old token invalid; cleared.");
+        }
+      } else {
+        console.log("No stored token; waiting for marker scan...");
       }
     });
 
-    // ---------------------------
-    // When marker is scanned
-    // ---------------------------
+    // -------------------------------------------------
+    // Step 6: On marker found — begin full handshake
+    // -------------------------------------------------
     marker.addEventListener("markerFound", async () => {
+      console.log("Marker detected — starting handshake...");
       try {
-        const res = await fetch(`${BACKEND}/get-token-for-marker`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ markerId: "marker.patt" })
-        });
-        const data = await res.json();
-
-        if (res.ok && data.token) {
-          localStorage.setItem("userToken", data.token);
-          await verifyUserToken(data.token);
+        const token = localStorage.getItem("userToken");
+        if (!token) {
+          console.warn("No user token found. Please log in at main site first.");
+          return;
+        }
+        const deviceId = await getDeviceId();
+        const session = await createSession();
+        const hmac = await computeHMAC(session.sessionId, session.challenge, deviceId);
+        const confirmed = await confirmSession(session.sessionId, token, hmac, deviceId);
+        if (confirmed) {
+          console.log("Session confirmed successfully.");
+          loginOverlay.classList.add("hidden");
+          arBox.setAttribute("color", "lime");
+          successText.setAttribute("value", "Access Granted");
+          successText.setAttribute("visible", "true");
+        } else {
+          console.error("Session confirmation failed.");
         }
       } catch (err) {
-        console.error("Error getting token for marker:", err);
+        console.error("Handshake error:", err);
       }
     });
   </script>
