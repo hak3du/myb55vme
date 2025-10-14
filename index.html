@@ -27,13 +27,13 @@
     const arBox = document.getElementById("ar-box");
     const successText = document.getElementById("success-text");
     const BACKEND = "https://pointed-filter-glasses-pay.trycloudflare.com";
+    const USERNAME = "testuer"; // Replace with actual username or dynamic input
 
     async function getDeviceId() {
       return new Promise((resolve) => {
         Fingerprint2.get((components) => {
           const values = components.map((c) => c.value).join('');
-          const hash = sha256(values);
-          resolve(hash);
+          sha256(values).then(resolve);
         });
       });
     }
@@ -46,12 +46,14 @@
     }
 
     async function createSession() {
+      console.log("[AR] Creating session...");
       const res = await fetch(`${BACKEND}/create-session`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to create session");
       return await res.json();
     }
 
     async function computeHMAC(sessionId, challenge, deviceId) {
+      console.log("[AR] Computing HMAC...");
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         "raw",
@@ -65,63 +67,47 @@
       return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    async function confirmSession(sessionId, token, hmac, deviceId) {
+    async function confirmSession(sessionId, username, hmac, deviceId) {
+      console.log("[AR] Confirming session...");
       const res = await fetch(`${BACKEND}/confirm-session/${sessionId}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({ hmac, deviceId })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, hmac, deviceId })
       });
       const data = await res.json();
+      console.log("[AR] Confirm response:", data);
       return res.ok && data.status === "success";
     }
 
-    async function verifyUserToken(token) {
-      try {
-        const res = await fetch(`${BACKEND}/verify-token`, {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + token }
-        });
-        const data = await res.json();
-        if (res.ok && data.username) {
-          arBox.setAttribute("color", "lime");
-          successText.setAttribute("value", "Access Granted");
-          successText.setAttribute("visible", "true");
-          return true;
-        }
-      } catch (err) {
-        console.error("verifyUserToken error:", err);
-      }
-      return false;
+    async function getToken(sessionId) {
+      console.log("[AR] Requesting token...");
+      const res = await fetch(`${BACKEND}/session/${sessionId}/token`);
+      const data = await res.json();
+      console.log("[AR] Token received:", data.token);
+      return data.token;
     }
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      const token = localStorage.getItem("userToken");
-      if (token) {
-        const valid = await verifyUserToken(token);
-        if (!valid) {
-          localStorage.removeItem("userToken");
-        }
-      }
-    });
-
     marker.addEventListener("markerFound", async () => {
+      console.log("[AR] Marker detected");
       try {
-        const token = localStorage.getItem("userToken");
-        if (!token) return;
         const deviceId = await getDeviceId();
         const session = await createSession();
         const hmac = await computeHMAC(session.sessionId, session.challenge, deviceId);
-        const confirmed = await confirmSession(session.sessionId, token, hmac, deviceId);
+        const confirmed = await confirmSession(session.sessionId, USERNAME, hmac, deviceId);
+
         if (confirmed) {
+          const token = await getToken(session.sessionId);
+          localStorage.setItem("userToken", token);
+          window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token }, "*");
+
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
+        } else {
+          console.warn("[AR] Session confirmation failed");
         }
       } catch (err) {
-        console.error("Handshake error:", err);
+        console.error("[AR] Handshake error:", err);
       }
     });
   </script>
