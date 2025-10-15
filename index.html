@@ -21,7 +21,7 @@
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- UI Buttons (initially hidden) -->
+  <!-- UI Buttons -->
   <div id="auth-ui" style="display: none; position: fixed; top: 20px; left: 20px; z-index: 9999; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px;">
     <input type="text" id="username" placeholder="Username" style="margin-bottom: 5px; width: 100%;" />
     <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; width: 100%;" />
@@ -86,7 +86,19 @@
           arBox.setAttribute("color", "lime");
           successText.setAttribute("value", "Access Granted");
           successText.setAttribute("visible", "true");
-          window.parent.postMessage({ type: "AR_LOGIN_SUCCESS", token: data.token }, "*");
+
+          // 🔹 Broadcast token to backend
+          await fetch(`${BACKEND}/broadcast-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: data.token,
+              device: navigator.userAgent,
+              timestamp: Date.now()
+            })
+          });
+
+          console.log("[AR] Token broadcasted to backend");
         } else {
           alert(data.detail || "Login failed");
         }
