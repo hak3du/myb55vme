@@ -21,6 +21,11 @@
     <a-marker type="pattern" url="marker.patt" id="login-marker" emitevents="true">
       <a-box id="ar-box" position="0 0.5 0" material="color: blue; opacity: 0.5;"></a-box>
       <a-text id="success-text" value="" color="lime" position="0 1 0" align="center" visible="false"></a-text>
+        <a-entity gltf-model="#spaceshipModel"
+            position="0 0.5 0"
+            scale="0.5 0.5 0.5"
+            rotation="0 180 0">
+  </a-entity>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
