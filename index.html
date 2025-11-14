@@ -1,72 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>AR Scene Login</title>
-  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <style>
-    body, html {
-      margin: 0; padding: 0; overflow: hidden; font-family: Arial, sans-serif;
-    }
-
-    /* AR Login Overlay */
-    #ar-login-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      display: flex; justify-content: center; align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s;
-    }
-
-    #ar-login-overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .ar-login-box {
-      background: #111;
-      padding: 25px;
-      border-radius: 12px;
-      text-align: center;
-      width: 90%;
-      max-width: 350px;
-      color: #fff;
-    }
-
-    .ar-login-box input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: none;
-      font-size: 16px;
-    }
-
-    .ar-login-box button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 15px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      background: #0ff;
-      color: #000;
-      font-size: 16px;
-    }
-
-    #ar-status-text {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #fff;
-    }
-  </style>
-</head>
-<body>
-
-<!-- AR Login Overlay -->
 <div id="ar-login-overlay">
   <div class="ar-login-box">
     <h2>AR Login</h2>
@@ -77,20 +8,18 @@
   </div>
 </div>
 
-<!-- AR Scene -->
-<a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false" 
-         arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
-
-  <a-assets>
-    <video id="vid" src="assets/asset.mp4" preload="auto" loop muted playsinline></video>
-  </a-assets>
-
-  <a-marker type="pattern" url="marker.patt" id="ar-marker">
-    <a-video src="#vid" position="0 0.1 0" rotation="-90 0 0" scale="1 1 1"></a-video>
-  </a-marker>
-
-  <a-entity camera></a-entity>
-</a-scene>
+<style>
+#ar-login-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center;
+  z-index:9999; transition: opacity 0.5s;
+}
+#ar-login-overlay.hidden { opacity:0; pointer-events:none; }
+.ar-login-box { background:#111; padding:25px; border-radius:12px; text-align:center; color:#fff; width:90%; max-width:350px; }
+.ar-login-box input, .ar-login-box button { width:100%; padding:10px; margin-top:8px; border-radius:6px; border:none; }
+.ar-login-box button { background:#0ff; color:#000; font-weight:bold; cursor:pointer; }
+#ar-status-text { margin-top:10px; font-size:14px; }
+</style>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -100,8 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const usernameInput = document.getElementById("ar-username");
   const passwordInput = document.getElementById("ar-password");
 
- const WS_URL = "https://charitable-variety-schemes-liquid.trycloudflare.com";
-  let socket;
+  const BACKEND_URL = "https://administered-vitamin-queensland-specials.trycloudflare.com/ar-login";
 
   function updateStatus(msg, color="#fff") {
     statusText.textContent = msg;
@@ -112,60 +40,41 @@ document.addEventListener("DOMContentLoaded", () => {
   function hideOverlay() {
     overlay.classList.add("hidden");
     setTimeout(() => overlay.style.display = "none", 500);
-    console.log("[AR Login] Overlay hidden");
   }
 
-  function connectWebSocket() {
-    socket = new WebSocket(WS_URL);
-
-    socket.addEventListener("open", () => {
-      updateStatus("Connected. Enter credentials.");
-    });
-
-    socket.addEventListener("message", (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "LOGIN_SUCCESS") {
-          updateStatus(`Welcome, ${data.username}`, "lightgreen");
-          hideOverlay();
-          // Play AR content
-          const video = document.querySelector("#vid");
-          video.play();
-        } else if (data.type === "LOGIN_FAILED") {
-          updateStatus("Login failed. Check username/password", "red");
-        }
-      } catch(err) {
-        console.error("[AR Login] Invalid message:", event.data);
-      }
-    });
-
-    socket.addEventListener("close", () => {
-      updateStatus("Disconnected. Retrying...", "orange");
-      setTimeout(connectWebSocket, 3000);
-    });
-
-    socket.addEventListener("error", (err) => {
-      updateStatus("WebSocket error", "red");
-      console.error(err);
-      socket.close();
-    });
-  }
-
-  // Send login credentials
-  loginBtn.addEventListener("click", () => {
+  loginBtn.addEventListener("click", async () => {
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
+
     if(!username || !password) {
       updateStatus("Enter username and password", "orange");
       return;
     }
-    const msg = { type: "LOGIN", username, password };
-    socket.send(JSON.stringify(msg));
-    updateStatus("Logging in...");
-  });
 
-  connectWebSocket();
+    updateStatus("Logging in...");
+
+    try {
+      const res = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if(res.ok && data.type === "LOGIN_SUCCESS") {
+        updateStatus(`Welcome, ${data.username}`, "lightgreen");
+        hideOverlay();
+        // Play AR content
+        const video = document.querySelector("#vid");
+        video.play();
+      } else {
+        updateStatus("Login failed. Check username/password", "red");
+      }
+    } catch(err) {
+      updateStatus("Server error", "red");
+      console.error(err);
+    }
+  });
 });
 </script>
-</body>
-</html>
