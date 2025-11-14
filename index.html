@@ -5,44 +5,30 @@
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <script>
-    AFRAME.registerComponent('videohandler', {
-      init: function () {
-        var marker = this.el;
-        this.vid = document.querySelector("#vid");
+    const BACKEND = "https://hydraulic-subsidiaries-synthesis-simulation.trycloudflare.com"; // Change to your FastAPI URL
 
-        marker.addEventListener('markerFound', () => {
-          if (window.loginSuccess) this.vid.play();
-        });
+    let loginSuccess = false;
 
-        marker.addEventListener('markerLost', () => {
-          this.vid.pause();
-        });
-      }
-    });
+    async function registerUser() {
+      const username = document.getElementById("reg-username").value.trim();
+      const password = document.getElementById("reg-password").value.trim();
+      const msg = document.getElementById("reg-msg");
 
-    async function sendLogin() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const msg = document.getElementById("msg");
-
-      msg.innerHTML = "Authenticating...";
+      msg.innerHTML = "Registering...";
       msg.style.color = "#0ff";
 
       try {
-        const res = await fetch("https://hydraulic-subsidiaries-synthesis-simulation.trycloudflare.com", {
+        const res = await fetch(`${BACKEND}/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ username, password })
         });
-
         const data = await res.json();
-
         if (res.ok) {
-          msg.innerHTML = "Login successful!";
+          msg.innerHTML = "Registration successful!";
           msg.style.color = "#0f0";
-          window.loginSuccess = true;
         } else {
-          msg.innerHTML = data.message || "Login failed";
+          msg.innerHTML = data.detail || "Registration failed";
           msg.style.color = "#f00";
         }
       } catch (err) {
@@ -50,79 +36,96 @@
         msg.style.color = "#f00";
       }
     }
+
+    async function loginUser() {
+      const username = document.getElementById("login-username").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      const msg = document.getElementById("login-msg");
+
+      msg.innerHTML = "Logging in...";
+      msg.style.color = "#0ff";
+
+      try {
+        const res = await fetch(`${BACKEND}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.innerHTML = "Login successful!";
+          msg.style.color = "#0f0";
+          loginSuccess = true;
+          localStorage.setItem("userToken", data.token);
+        } else {
+          msg.innerHTML = data.detail || "Login failed";
+          msg.style.color = "#f00";
+        }
+      } catch (err) {
+        msg.innerHTML = "Server error";
+        msg.style.color = "#f00";
+      }
+    }
+
+    AFRAME.registerComponent('videohandler', {
+      init: function () {
+        var marker = this.el;
+        this.vid = document.querySelector("#vid");
+
+        marker.addEventListener('markerFound', () => {
+          if (loginSuccess) this.vid.play();
+        });
+
+        marker.addEventListener('markerLost', () => {
+          this.vid.pause();
+        });
+      }
+    });
   </script>
 
   <style>
-    body, html { margin:0; padding:0; overflow:hidden; }
-
-    #loginBox {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.65);
-      padding: 12px 18px;
-      border-radius: 12px;
-      color: #fff;
-      width: 85%;
-      max-width: 350px;
-      font-family: Arial;
-      z-index: 9999;
-      backdrop-filter: blur(6px);
-    }
-
-    input { width: 100%; padding: 8px; margin-top: 6px; border-radius: 6px; border: none; }
-    button { width: 100%; padding: 10px; margin-top: 10px; background: #00ffff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    #msg { margin-top: 8px; font-size: 13px; text-align:center; }
+    body, html { margin:0; padding:0; overflow:hidden; font-family: Arial; }
+    .box { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); 
+           background: rgba(0,0,0,0.65); padding: 12px 18px; border-radius: 12px;
+           color: #fff; width: 85%; max-width: 350px; backdrop-filter: blur(6px); margin-bottom:10px; }
+    input { width: 100%; padding: 8px; margin-top: 6px; border-radius: 6px; border:none; }
+    button { width: 100%; padding: 10px; margin-top: 10px; background:#00ffff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; }
+    #login-msg, #reg-msg { margin-top: 6px; font-size:13px; text-align:center; }
   </style>
 </head>
 
 <body>
 
-<div id="loginBox">
-  <div style="text-align:center; margin-bottom:4px; font-size:16px;"><b>AR Login</b></div>
-  <input id="email" type="text" placeholder="Email / Username" />
-  <input id="password" type="password" placeholder="Password" />
-  <button onclick="sendLogin()">Authenticate</button>
-  <div id="msg"></div>
+<div class="box" id="registerBox">
+  <div style="text-align:center;"><b>Register</b></div>
+  <input id="reg-username" type="text" placeholder="Username" />
+  <input id="reg-password" type="password" placeholder="Password" />
+  <button onclick="registerUser()">Register</button>
+  <div id="reg-msg"></div>
+</div>
+
+<div class="box" id="loginBox">
+  <div style="text-align:center;"><b>Login</b></div>
+  <input id="login-username" type="text" placeholder="Username" />
+  <input id="login-password" type="password" placeholder="Password" />
+  <button onclick="loginUser()">Login</button>
+  <div id="login-msg"></div>
 </div>
 
 <a-scene
   vr-mode-ui="enabled: false"
-  loading-screen="enabled: false;"
+  loading-screen="enabled: false"
   arjs='sourceType: webcam; debugUIEnabled: false;'
   embedded
 >
   <a-assets>
-    <!-- Only load video if exists -->
-    <video
-      id="vid"
-      src="asset.mp4"
-      preload="auto"
-      loop
-      autoplay
-      muted
-      webkit-playsinline
-      playsinline
-      crossorigin
-    ></video>
+    <video id="vid" src="asset.mp4" preload="auto" loop muted playsinline></video>
   </a-assets>
 
-  <a-marker
-    type="pattern"
-    url="marker.patt"
-    videohandler
-    smooth="true"
-    smoothCount="10"
-    smoothTolerance="0.01"
-    smoothThreshold="5"
-  >
-    <a-video
-      src="#vid"
-      scale="1 1 1"
-      position="0 0.1 0"
-      rotation="-90 0 0"
-    ></a-video>
+  <a-marker type="pattern" url="marker.patt" videohandler smooth="true">
+    <a-video src="#vid" scale="1 1 1" position="0 0.1 0" rotation="-90 0 0"></a-video>
   </a-marker>
 
   <a-entity camera></a-entity>
