@@ -8,78 +8,110 @@
     body, html { margin:0; padding:0; overflow:hidden; font-family: Arial; }
     .overlay {
       position: fixed; top: 50%; left:50%; transform: translate(-50%,-50%);
-      background: rgba(0,0,0,0.7); color:#fff; padding: 20px; border-radius: 12px;
+      background: rgba(0,0,0,0.85); color:#fff; padding: 20px; border-radius: 12px;
       width: 85%; max-width: 350px; display: none; z-index: 999;
+      text-align:center;
     }
-    input { width: 100%; padding: 8px; margin-top: 6px; border-radius:6px; border:none; }
-    button { width: 100%; padding:10px; margin-top:10px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#0ff; color:#000; }
-    #login-msg, #reg-msg { margin-top:6px; font-size:13px; text-align:center; }
+    input { width: 100%; padding: 10px; margin-top: 10px; border-radius:6px; border:none; }
+    button { width: 100%; padding:10px; margin-top:15px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#0ff; color:#000; }
+    #status-msg { margin-top:10px; font-size:14px; }
   </style>
 
   <script>
-    const BACKEND = "https://hydraulic-subsidiaries-synthesis-simulation.trycloudflare.com"; // Change this
+    const BACKEND_URL = "https://hydraulic-subsidiaries-synthesis-simulation.trycloudflare.com";
     let loginSuccess = false;
 
     function showOverlay() {
       document.getElementById("loginOverlay").style.display = "block";
     }
 
-    async function registerUser() {
-      const username = document.getElementById("reg-username").value.trim();
-      const password = document.getElementById("reg-password").value.trim();
-      const msg = document.getElementById("reg-msg");
-      msg.innerHTML = "Registering..."; msg.style.color="#0ff";
+    function hideOverlay() {
+      document.getElementById("loginOverlay").style.display = "none";
+      console.log("[AR Overlay] Hidden");
+    }
 
-      try {
-        const res = await fetch(`${BACKEND}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (res.ok) { msg.innerHTML="Registered!"; msg.style.color="#0f0"; }
-        else { msg.innerHTML = data.detail || "Error"; msg.style.color="#f00"; }
-      } catch { msg.innerHTML="Server error"; msg.style.color="#f00"; }
+    function updateStatus(message, color="#0ff") {
+      const msg = document.getElementById("status-msg");
+      msg.textContent = message;
+      msg.style.color = color;
+      console.log("[AR Overlay]", message);
     }
 
     async function loginUser() {
-      const username = document.getElementById("login-username").value.trim();
-      const password = document.getElementById("login-password").value.trim();
-      const msg = document.getElementById("login-msg");
-      msg.innerHTML = "Logging in..."; msg.style.color="#0ff";
+      const username = document.getElementById("user-username").value.trim();
+      const password = document.getElementById("user-password").value.trim();
+
+      if(!username || !password) {
+        updateStatus("Enter username & password", "orange");
+        return;
+      }
+
+      updateStatus("Logging in...");
 
       try {
-        const res = await fetch(`${BACKEND}/login`, {
+        const res = await fetch(`${BACKEND_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
 
-        if (res.ok) {
-          msg.innerHTML = "Login successful!"; msg.style.color="#0f0";
+        if(res.ok && data.token) {
+          updateStatus("Login successful!", "lightgreen");
           loginSuccess = true;
-          localStorage.setItem("userToken", data.token);
-          document.getElementById("loginOverlay").style.display="none";
+          localStorage.setItem("arUserToken", data.token);
+          hideOverlay();
         } else {
-          msg.innerHTML = data.detail || "Login failed"; msg.style.color="#f00";
+          updateStatus(data.detail || "Login failed", "red");
         }
-      } catch { msg.innerHTML="Server error"; msg.style.color="#f00"; }
+      } catch (err) {
+        updateStatus("Server error", "red");
+        console.error(err);
+      }
     }
 
+    // Poll backend for AR token broadcast
+    async function pollARTokens() {
+      if(loginSuccess) return;
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/latest-token`);
+        const data = await res.json();
+        if(data.token && !localStorage.getItem("arUserToken")) {
+          console.log("[AR Overlay] Token detected:", data.token);
+          localStorage.setItem("arUserToken", data.token);
+
+          // Verify token
+          const verifyRes = await fetch(`${BACKEND_URL}/verify-token`, {
+            method:"POST",
+            headers:{ "Authorization": "Bearer " + data.token }
+          });
+          const verifyData = await verifyRes.json();
+          if(verifyRes.ok && verifyData.username) {
+            updateStatus(`Welcome, ${verifyData.username}`, "lightgreen");
+            loginSuccess = true;
+            hideOverlay();
+          } else {
+            updateStatus("Invalid token", "red");
+            localStorage.removeItem("arUserToken");
+          }
+        }
+      } catch(err) { console.error(err); }
+    }
+
+    setInterval(pollARTokens, 3000);
+
+    // AR Marker handler
     AFRAME.registerComponent('marker-ui-handler', {
       init: function () {
         const marker = this.el;
         const vid = document.querySelector("#vid");
 
         marker.addEventListener('markerFound', () => {
-          if (!loginSuccess) showOverlay();
+          if(!loginSuccess) showOverlay();
           else vid.play();
         });
-
-        marker.addEventListener('markerLost', () => {
-          vid.pause();
-        });
+        marker.addEventListener('markerLost', () => { vid.pause(); });
       }
     });
   </script>
@@ -87,29 +119,17 @@
 
 <body>
 
-<!-- Hidden overlay, only appears after marker scan -->
+<!-- Single login form overlay -->
 <div class="overlay" id="loginOverlay">
-  <div style="text-align:center;"><b>Register</b></div>
-  <input id="reg-username" type="text" placeholder="Username" />
-  <input id="reg-password" type="password" placeholder="Password" />
-  <button onclick="registerUser()">Register</button>
-  <div id="reg-msg"></div>
-
-  <hr style="border:1px solid #0ff;margin:10px 0;">
-
-  <div style="text-align:center;"><b>Login</b></div>
-  <input id="login-username" type="text" placeholder="Username" />
-  <input id="login-password" type="password" placeholder="Password" />
+  <h2>AR Login</h2>
+  <input id="user-username" type="text" placeholder="Username" />
+  <input id="user-password" type="password" placeholder="Password" />
   <button onclick="loginUser()">Login</button>
-  <div id="login-msg"></div>
+  <div id="status-msg">Scan the marker to begin</div>
 </div>
 
-<a-scene
-  vr-mode-ui="enabled: false"
-  loading-screen="enabled: false"
-  arjs='sourceType: webcam; debugUIEnabled: false;'
-  embedded
->
+<a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false"
+         arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
   <a-assets>
     <video id="vid" src="asset.mp4" preload="auto" loop muted playsinline></video>
   </a-assets>
