@@ -1,3 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AR Scene with Login</title>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    body, html { margin:0; padding:0; overflow:hidden; font-family: Arial, sans-serif; }
+
+    /* AR Login Overlay */
+    #ar-login-overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center;
+      z-index:9999; transition: opacity 0.5s;
+    }
+    #ar-login-overlay.hidden { opacity:0; pointer-events:none; }
+    .ar-login-box {
+      background:#111; padding:25px; border-radius:12px; text-align:center; color:#fff;
+      width:90%; max-width:350px;
+    }
+    .ar-login-box input, .ar-login-box button { width:100%; padding:10px; margin-top:8px; border-radius:6px; border:none; }
+    .ar-login-box button { background:#0ff; color:#000; font-weight:bold; cursor:pointer; }
+    #ar-status-text { margin-top:10px; font-size:14px; color:#fff; }
+  </style>
+</head>
+<body>
+
+<!-- AR Login Overlay -->
 <div id="ar-login-overlay">
   <div class="ar-login-box">
     <h2>AR Login</h2>
@@ -8,18 +37,18 @@
   </div>
 </div>
 
-<style>
-#ar-login-overlay {
-  position: fixed; top:0; left:0; width:100%; height:100%;
-  background: rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center;
-  z-index:9999; transition: opacity 0.5s;
-}
-#ar-login-overlay.hidden { opacity:0; pointer-events:none; }
-.ar-login-box { background:#111; padding:25px; border-radius:12px; text-align:center; color:#fff; width:90%; max-width:350px; }
-.ar-login-box input, .ar-login-box button { width:100%; padding:10px; margin-top:8px; border-radius:6px; border:none; }
-.ar-login-box button { background:#0ff; color:#000; font-weight:bold; cursor:pointer; }
-#ar-status-text { margin-top:10px; font-size:14px; }
-</style>
+<!-- AR Scene -->
+<a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false" arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
+  <a-assets>
+    <video id="vid" src="assets/asset.mp4" preload="auto" loop muted playsinline></video>
+  </a-assets>
+
+  <a-marker type="pattern" url="marker.patt" id="ar-marker">
+    <a-video src="#vid" position="0 0.1 0" rotation="-90 0 0" scale="1 1 1"></a-video>
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -34,18 +63,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateStatus(msg, color="#fff") {
     statusText.textContent = msg;
     statusText.style.color = color;
-    console.log("[AR Login]", msg);
   }
 
   function hideOverlay() {
     overlay.classList.add("hidden");
-    setTimeout(() => overlay.style.display = "none", 500);
+    setTimeout(() => overlay.style.display="none", 500);
   }
 
+  // Login function
   loginBtn.addEventListener("click", async () => {
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
-
     if(!username || !password) {
       updateStatus("Enter username and password", "orange");
       return;
@@ -55,19 +83,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({username, password})
       });
 
       const data = await res.json();
 
-      if(res.ok && data.type === "LOGIN_SUCCESS") {
+      if(res.ok && data.type==="LOGIN_SUCCESS") {
         updateStatus(`Welcome, ${data.username}`, "lightgreen");
         hideOverlay();
-        // Play AR content
-        const video = document.querySelector("#vid");
-        video.play();
+        // Play AR content immediately
+        document.querySelector("#vid").play();
       } else {
         updateStatus("Login failed. Check username/password", "red");
       }
@@ -76,5 +103,18 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error(err);
     }
   });
+
+  // Optional: hide overlay if AR marker detected
+  const marker = document.getElementById("ar-marker");
+  marker.addEventListener("markerFound", () => {
+    console.log("Marker detected");
+    // You can auto-show overlay or just wait for login
+  });
+  marker.addEventListener("markerLost", () => {
+    console.log("Marker lost");
+    document.querySelector("#vid").pause();
+  });
 });
 </script>
+</body>
+</html>
