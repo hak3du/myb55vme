@@ -1,111 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>AR Scene Login</title>
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
   <style>
-    body, html { margin: 0; padding: 0; overflow: hidden; font-family: Arial; }
-    #ar-login-overlay {
-      position: fixed; top: 0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center;
-      z-index: 9999; transition: opacity 0.5s;
+    body, html {
+      margin: 0; padding: 0; overflow: hidden; font-family: Arial, sans-serif;
     }
-    #ar-login-overlay.hidden { opacity:0; pointer-events:none; display:none; }
-    .ar-login-box { background:#111; padding:20px; border-radius:12px; text-align:center; width: 80%; max-width: 400px; }
-    input { width:100%; padding:10px; margin:10px 0; border-radius:6px; border:none; }
-    button { width:100%; padding:10px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#0ff; color:#000; }
-    #ar-status-text { margin-top:10px; font-size:14px; color:#fff; }
+
+    /* AR Login Overlay */
+    #ar-login-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+
+    #ar-login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .ar-login-box {
+      background: #111;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      width: 90%;
+      max-width: 350px;
+      color: #fff;
+    }
+
+    .ar-login-box input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+    }
+
+    .ar-login-box button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #0ff;
+      color: #000;
+      font-size: 16px;
+    }
+
+    #ar-status-text {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
-  <!-- Overlay for login -->
-  <div id="ar-login-overlay">
-    <div class="ar-login-box">
-      <h2>AR Login</h2>
-      <input type="text" id="ar-username" placeholder="Username" />
-      <input type="password" id="ar-password" placeholder="Password" />
-      <button id="login-btn">Login</button>
-      <p id="ar-status-text">Connecting...</p>
-    </div>
+
+<!-- AR Login Overlay -->
+<div id="ar-login-overlay">
+  <div class="ar-login-box">
+    <h2>AR Login</h2>
+    <input type="text" id="ar-username" placeholder="Username" />
+    <input type="password" id="ar-password" placeholder="Password" />
+    <button id="ar-login-btn">Login</button>
+    <p id="ar-status-text">Connect your AR marker...</p>
   </div>
+</div>
 
-  <!-- AR Scene -->
-  <a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false"
-           arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
-    <a-marker type="pattern" url="marker.patt" id="markerA">
-      <a-box position="0 0.5 0" rotation="0 45 0" color="#4CC3D9"></a-box>
-    </a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
+<!-- AR Scene -->
+<a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false" 
+         arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
 
-  <script>
-    const overlay = document.getElementById('ar-login-overlay');
-    const statusText = document.getElementById('ar-status-text');
-    const loginBtn = document.getElementById('login-btn');
-    const usernameInput = document.getElementById('ar-username');
-    const passwordInput = document.getElementById('ar-password');
+  <a-assets>
+    <video id="vid" src="assets/asset.mp4" preload="auto" loop muted playsinline></video>
+  </a-assets>
 
-    const WS_URL = "wss://your-backend.example/ws"; // <-- replace with your backend
-    let socket;
+  <a-marker type="pattern" url="marker.patt" id="ar-marker">
+    <a-video src="#vid" position="0 0.1 0" rotation="-90 0 0" scale="1 1 1"></a-video>
+  </a-marker>
 
-    function updateStatus(msg, color="#fff") {
-      statusText.textContent = msg;
-      statusText.style.color = color;
-      console.log("[AR Scene]", msg);
-    }
+  <a-entity camera></a-entity>
+</a-scene>
 
-    function hideOverlay() {
-      overlay.classList.add('hidden');
-      setTimeout(() => overlay.style.display = 'none', 500);
-    }
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("ar-login-overlay");
+  const statusText = document.getElementById("ar-status-text");
+  const loginBtn = document.getElementById("ar-login-btn");
+  const usernameInput = document.getElementById("ar-username");
+  const passwordInput = document.getElementById("ar-password");
 
-    function connectWS() {
-      socket = new WebSocket(WS_URL);
+  const WS_URL = "wss://your-backend.example/ws"; // Replace with your WSS server
+  let socket;
 
-      socket.addEventListener("open", () => {
-        updateStatus("Connected. Enter credentials.");
-      });
+  function updateStatus(msg, color="#fff") {
+    statusText.textContent = msg;
+    statusText.style.color = color;
+    console.log("[AR Login]", msg);
+  }
 
-      socket.addEventListener("message", (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if(data.type === "LOGIN_SUCCESS") {
-            updateStatus(`Welcome, ${data.username}`, "lightgreen");
-            hideOverlay();
-          } else if(data.type === "LOGIN_FAILED") {
-            updateStatus("Login failed. Try again.", "red");
-          }
-        } catch(err) {
-          console.error("[AR Scene] Invalid message:", event.data);
-        }
-      });
+  function hideOverlay() {
+    overlay.classList.add("hidden");
+    setTimeout(() => overlay.style.display = "none", 500);
+    console.log("[AR Login] Overlay hidden");
+  }
 
-      socket.addEventListener("close", () => {
-        updateStatus("Disconnected. Reconnecting...", "orange");
-        setTimeout(connectWS, 3000);
-      });
+  function connectWebSocket() {
+    socket = new WebSocket(WS_URL);
 
-      socket.addEventListener("error", (err) => {
-        updateStatus("WebSocket error", "red");
-        console.error(err);
-        socket.close();
-      });
-    }
-
-    loginBtn.addEventListener("click", () => {
-      const username = usernameInput.value.trim();
-      const password = passwordInput.value.trim();
-      if(!username || !password) {
-        updateStatus("Enter username & password", "orange");
-        return;
-      }
-      // Send login payload instantly
-      socket.send(JSON.stringify({ type:"LOGIN", username, password }));
-      updateStatus("Logging in...");
+    socket.addEventListener("open", () => {
+      updateStatus("Connected. Enter credentials.");
     });
 
-    connectWS();
-  </script>
+    socket.addEventListener("message", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "LOGIN_SUCCESS") {
+          updateStatus(`Welcome, ${data.username}`, "lightgreen");
+          hideOverlay();
+          // Play AR content
+          const video = document.querySelector("#vid");
+          video.play();
+        } else if (data.type === "LOGIN_FAILED") {
+          updateStatus("Login failed. Check username/password", "red");
+        }
+      } catch(err) {
+        console.error("[AR Login] Invalid message:", event.data);
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      updateStatus("Disconnected. Retrying...", "orange");
+      setTimeout(connectWebSocket, 3000);
+    });
+
+    socket.addEventListener("error", (err) => {
+      updateStatus("WebSocket error", "red");
+      console.error(err);
+      socket.close();
+    });
+  }
+
+  // Send login credentials
+  loginBtn.addEventListener("click", () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    if(!username || !password) {
+      updateStatus("Enter username and password", "orange");
+      return;
+    }
+    const msg = { type: "LOGIN", username, password };
+    socket.send(JSON.stringify(msg));
+    updateStatus("Logging in...");
+  });
+
+  connectWebSocket();
+});
+</script>
 </body>
 </html>
