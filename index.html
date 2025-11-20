@@ -1,154 +1,100 @@
 <!doctype html>
 <html>
 <head>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    <style>
-        body { margin:0; overflow:hidden; font-family:sans-serif; }
-        #login-box {
-            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color:white; padding:20px; border-radius:10px;
-            display: none; z-index: 9999;
-        }
-        #login-box input { display:block; margin:5px 0; padding:5px; width:200px; }
-        #login-box button { margin:5px; padding:5px 10px; cursor:pointer; }
-        #status { margin-top:5px; }
-    </style>
+  <style>
+    body { margin:0; overflow:hidden; font-family:sans-serif; }
+    #login-box {
+      position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color:white; padding:20px; border-radius:10px;
+      display: none; z-index: 9999;
+    }
+    #login-box input { display:block; margin:5px 0; padding:5px; width:200px; }
+    #login-box button { margin:5px; padding:5px 10px; cursor:pointer; }
+    #status { margin-top:5px; }
+  </style>
 
-    <script>
-        AFRAME.registerComponent('videohandler', {
-            init: function () {
-                var marker = this.el;
-                this.vid = document.querySelector("#vid");
-                this.loginBox = document.getElementById("login-box");
+  <script>
+    AFRAME.registerComponent('ar-login-handler', {
+      init: function () {
+        const marker = this.el;
+        const loginBox = document.getElementById("login-box");
 
-                marker.addEventListener('markerFound', function () {
-                    this.toggle = true;
-                    this.vid.play();
-                    this.loginBox.style.display = "block"; // show login/register
-                }.bind(this));
-
-                marker.addEventListener('markerLost', function () {
-                    this.toggle = false;
-                    this.vid.pause();
-                    this.loginBox.style.display = "none"; // hide login/register
-                }.bind(this));
-            },
+        marker.addEventListener('markerFound', () => {
+          loginBox.style.display = "block";
         });
 
-        const BACKEND = "https://additions-johnny-factory-dozen.trycloudflare.com";
-        const statusDiv = document.getElementById("status");
+        marker.addEventListener('markerLost', () => {
+          loginBox.style.display = "none";
+        });
+      }
+    });
 
-        async function loginUser(){
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            statusDiv.textContent = "Logging in...";
-            try{
-                const res = await fetch(`${BACKEND}/login`, {
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body: JSON.stringify({username,password})
-                });
-                const data = await res.json();
-                if(res.ok && data.token){
-                    statusDiv.textContent = "Login successful!";
-                    // You can notify main website overlay here via Cloudflare Tunnel / WS
-                    // e.g., send token to server which main site polls
-                } else {
-                    statusDiv.textContent = data.detail || "Login failed";
-                }
-            } catch(err){
-                statusDiv.textContent = "Login error";
-                console.error(err);
-            }
-        }
+    const BACKEND = "https://reality-consortium-showed-clay.trycloudflare.com";
+    const statusDiv = document.getElementById("status");
 
-        async function registerUser(){
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            statusDiv.textContent = "Registering...";
-            try{
-                const res = await fetch(`${BACKEND}/register`, {
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body: JSON.stringify({username,password})
-                });
-                const data = await res.json();
-                if(res.ok){
-                    statusDiv.textContent = "Registered! Logging in...";
-                    await loginUser();
-                } else {
-                    statusDiv.textContent = data.detail || "Registration failed";
-                }
-            } catch(err){
-                statusDiv.textContent = "Registration error";
-                console.error(err);
-            }
+    async function loginUser(){
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      statusDiv.textContent = "Logging in...";
+      try{
+        const res = await fetch(`${BACKEND}/login`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({username,password})
+        });
+        const data = await res.json();
+        if(res.ok && data.token){
+          statusDiv.textContent = "Login successful!";
+        } else {
+          statusDiv.textContent = data.detail || "Login failed";
         }
-    </script>
+      } catch(err){
+        statusDiv.textContent = "Login error";
+        console.error(err);
+      }
+    }
+
+    async function registerUser(){
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      statusDiv.textContent = "Registering...";
+      try{
+        const res = await fetch(`${BACKEND}/register`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({username,password})
+        });
+        const data = await res.json();
+        if(res.ok){
+          statusDiv.textContent = "Registered! Logging in...";
+          await loginUser();
+        } else {
+          statusDiv.textContent = data.detail || "Registration failed";
+        }
+      } catch(err){
+        statusDiv.textContent = "Registration error";
+        console.error(err);
+      }
+    }
+  </script>
 </head>
 
 <body>
-    <!-- LOGIN/REGISTER OVERLAY -->
-    <div id="login-box">
-        <h3>AR Login/Register</h3>
-        <input type="text" id="username" placeholder="Username"/>
-        <input type="password" id="password" placeholder="Password"/>
-        <button onclick="loginUser()">Login</button>
-        <button onclick="registerUser()">Register</button>
-        <div id="status"></div>
-    </div>
+  <div id="login-box">
+    <h3>AR Login/Register</h3>
+    <input type="text" id="username" placeholder="Username"/>
+    <input type="password" id="password" placeholder="Password"/>
+    <button onclick="loginUser()">Login</button>
+    <button onclick="registerUser()">Register</button>
+    <div id="status"></div>
+  </div>
 
-    <a-scene
-        vr-mode-ui="enabled: false"
-        loading-screen="enabled: false;"
-        arjs='sourceType: webcam; debugUIEnabled: false;'
-        id="scene"
-        embedded
-        gesture-detector
-    >
-        <a-assets>
-            <video
-                id="vid"
-                src="assets/asset.mp4"
-                preload="auto"
-                loop
-                crossorigin
-                webkit-playsinline
-                autoplay
-                muted
-                playsinline
-            ></video>
-        </a-assets>
-
-        <a-marker
-            type="pattern"
-            preset="custom"
-            url="marker.patt"
-            videohandler
-            smooth="true"
-            smoothCount="10"
-            smoothTolerance="0.01"
-            smoothThreshold="5"
-            raycaster="objects: .clickable"
-            emitevents="true"
-            cursor="fuse: false; rayOrigin: mouse;"
-            id="markerA"
-        >
-            <a-video
-                src="#vid"
-                scale="1 1 1"
-                position="0 0.1 0"
-                rotation="-90 0 0"
-                class="clickable"
-                gesture-handler
-            ></a-video>
-        </a-marker>
-
-        <a-entity camera></a-entity>
-    </a-scene>
+  <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
+    <a-marker type="pattern" url="marker.patt" ar-login-handler></a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
 </body>
 </html>
