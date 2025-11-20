@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>AR Login with YouTube</title>
+  <title>AR Login/Register</title>
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
@@ -10,8 +10,6 @@
 
   <style>
     body { margin:0; overflow:hidden; font-family:sans-serif; }
-
-    /* LOGIN OVERLAY */
     #login-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.9);
@@ -20,40 +18,66 @@
       z-index: 9999;
     }
     #login-overlay.hidden { display: none; }
-
-    .login-box { text-align: center; max-width: 400px; }
-    .login-box input { margin: 5px 0; padding: 8px; width: 90%; }
-    .login-box button { margin-top: 10px; padding: 10px 20px; cursor: pointer; }
-    #status-text { margin-top: 10px; }
-
-    /* Marker Image */
-    .marker-img1 { max-width: 110%; width: 50vw; height:auto; opacity:0.7; }
-
-    /* YouTube iframe overlay */
-    #youtube-frame {
-      display: none;
-      border: none;
-      position: fixed;
-      width: 70vw;
-      height: 40vw;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 9998;
-    }
+    .login-box { text-align:center; max-width: 400px; }
+    .login-box input { margin:5px 0; padding:8px; width:90%; }
+    .login-box button { margin-top:10px; padding:10px 20px; cursor:pointer; width:45%; margin-right:5px; }
+    #status-text { margin-top:10px; color:#fff; }
+    #marker-img { max-width:110%; width:50vw; height:auto; opacity:0.7; margin-bottom:15px; }
   </style>
 
   <script>
-    const BACKEND = "https://refers-privacy-lynn-allow.trycloudflare.com"; // Replace with your backend URL
+    const BACKEND = "https://refers-privacy-lynn-allow.trycloudflare.com";
 
-    // ----------------- LOGIN -----------------
-    async function loginUser() {
+    async function registerARUser() {
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
-      const statusText = document.getElementById("status-text");
+      const status = document.getElementById("status-text");
 
-      statusText.textContent = "Logging in...";
-      statusText.style.color = "#fff";
+      if(!username || !password){
+        status.textContent = "Enter both username and password!";
+        status.style.color = "red";
+        return;
+      }
+
+      status.textContent = "Registering...";
+      status.style.color = "#fff";
+
+      try {
+        const res = await fetch(`${BACKEND}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if(res.ok) {
+          status.textContent = "Registration successful! Logging in...";
+          status.style.color = "green";
+          await loginARUser(); // auto-login after register
+        } else {
+          status.textContent = data.detail || "Registration failed";
+          status.style.color = "red";
+        }
+      } catch(err) {
+        console.error(err);
+        status.textContent = "Registration error";
+        status.style.color = "red";
+      }
+    }
+
+    async function loginARUser() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const status = document.getElementById("status-text");
+
+      if(!username || !password){
+        status.textContent = "Enter both username and password!";
+        status.style.color = "red";
+        return;
+      }
+
+      status.textContent = "Logging in...";
+      status.style.color = "#fff";
 
       try {
         const res = await fetch(`${BACKEND}/login`, {
@@ -64,111 +88,67 @@
         const data = await res.json();
 
         if(res.ok && data.token) {
-          localStorage.setItem("userToken", data.token);
-          statusText.textContent = "Login successful!";
-          statusText.style.color = "green";
+          localStorage.setItem("arUserToken", data.token);
+          status.textContent = "Login successful!";
+          status.style.color = "green";
           document.getElementById("login-overlay").classList.add("hidden");
+
+          // Broadcast token to backend for main website
+          await fetch(`${BACKEND}/broadcast-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: data.token, device:"AR_PHONE", timestamp: Date.now() })
+          });
         } else {
-          statusText.textContent = data.detail || "Login failed";
-          statusText.style.color = "red";
+          status.textContent = data.detail || "Login failed";
+          status.style.color = "red";
         }
       } catch(err) {
-        statusText.textContent = "Login error";
-        statusText.style.color = "red";
         console.error(err);
+        status.textContent = "Login error";
+        status.style.color = "red";
       }
     }
-
-    // ----------------- VERIFY TOKEN -----------------
-    async function verifyUserToken(token) {
-      try {
-        const res = await fetch(`${BACKEND}/verify-token`, {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + token }
-        });
-        const data = await res.json();
-        return res.ok && data.username;
-      } catch (err) {
-        console.error("Token verification failed:", err);
-        return false;
-      }
-    }
-
-    // ----------------- AR + YouTube -----------------
-    AFRAME.registerComponent('youtube-handler', {
-      init: function () {
-        const marker = this.el;
-        const iframe = document.getElementById("youtube-frame");
-
-        marker.addEventListener('markerFound', async () => {
-          const token = localStorage.getItem("userToken");
-          if(token && await verifyUserToken(token)) {
-            iframe.style.display = "block";
-          }
-        });
-
-        marker.addEventListener('markerLost', () => {
-          iframe.style.display = "none";
-        });
-      }
-    });
   </script>
 </head>
 
 <body>
-
-  <!-- LOGIN OVERLAY -->
+  <!-- LOGIN/REGISTER OVERLAY -->
   <div id="login-overlay">
     <div class="login-box">
-      <img src="C:/Users/Administrator/Downloads/marker1.png" alt="AR Marker" class="marker-img1" />
-      <h2>Welcome to the new way of Security</h2>
+      <img src="assets/marker1.png" alt="AR Marker" id="marker-img" />
+      <h2>AR Login / Register</h2>
       <input type="text" id="username" placeholder="Username" />
       <input type="password" id="password" placeholder="Password" />
-      <button onclick="loginUser()">Login</button>
-      <p id="status-text">Please enter credentials to continue.</p>
+      <div>
+        <button onclick="loginARUser()">Login</button>
+        <button onclick="registerARUser()">Register</button>
+      </div>
+      <p id="status-text">Enter credentials to continue.</p>
     </div>
   </div>
 
-  <!-- YOUTUBE IFRAME -->
-  <iframe
-    id="youtube-frame"
-    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&controls=1"
-    allow="autoplay; encrypted-media"
-    allowfullscreen
-  ></iframe>
-
   <!-- AR SCENE -->
   <a-scene
-    vr-mode-ui="enabled: false"
-    loading-screen="enabled: false;"
-    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled:false"
+    loading-screen="enabled:false;"
+    arjs="sourceType:webcam; debugUIEnabled:false;"
     embedded
     gesture-detector
   >
     <a-marker
       type="pattern"
-      preset="custom"
       url="assets/marker.patt"
       smooth="true"
       smoothCount="10"
       smoothTolerance="0.01"
       smoothThreshold="5"
       gesture-handler
-      youtube-handler
-      id="markerA"
+      id="ar-marker"
     >
-      <a-plane
-        width="1"
-        height="0.6"
-        color="#000"
-        opacity="0"
-        position="0 0 0"
-        rotation="-90 0 0"
-      ></a-plane>
+      <a-plane width="1" height="0.6" color="#000" opacity="0" rotation="-90 0 0"></a-plane>
     </a-marker>
-
     <a-entity camera></a-entity>
   </a-scene>
-
 </body>
 </html>
