@@ -1,180 +1,93 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>AR Login / Register</title>
-<script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-<script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-<script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
-
-<style>
-body { margin:0; overflow:hidden; font-family:sans-serif; }
-
-#login-overlay {
-  position: fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.9);
-  color: white;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  z-index: 9999;
-}
-#login-overlay.hidden { display:none; }
-
-.login-box {
-  text-align:center;
-  max-width:400px;
-  width:90%;
-}
-.login-box input {
-  margin:5px 0;
-  padding:10px;
-  width:90%;
-}
-.login-box button {
-  margin:5px 5px 0 0;
-  padding:10px 20px;
-  cursor:pointer;
-  width:45%;
-}
-#status-text { margin-top:10px; color:#fff; }
-#marker-img { max-width:110%; width:50vw; opacity:0.7; margin-bottom:15px; }
-</style>
-
-<script>
-const BACKEND = "https://university-parental-losses-showers.trycloudflare.com"; // <-- YOUR CLOUDFLARE URL
-
-async function registerUser() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const status = document.getElementById("status-text");
-
-  if(!username || !password){
-    status.textContent = "Enter both username and password!";
-    status.style.color = "red";
-    return;
-  }
-
-  status.textContent = "Registering...";
-  status.style.color = "#fff";
-
-  try {
-    const res = await fetch(`${BACKEND}/register`, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({username,password})
-    });
-    const data = await res.json();
-
-    if(res.ok){
-      status.textContent = "Registration successful! Logging in...";
-      status.style.color="green";
-      await loginUser(); // auto-login after registration
-    } else {
-      status.textContent = data.detail || "Registration failed";
-      status.style.color="red";
+  <meta charset="UTF-8">
+  <title>AR Login</title>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    body { margin:0; overflow:hidden; font-family:sans-serif; }
+    #login-box {
+      position: absolute; top:10%; left:50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color:white; padding:20px; border-radius:10px;
+      display: none;
     }
-  } catch(e){
-    console.error(e);
-    status.textContent = "Registration error";
-    status.style.color="red";
-  }
-}
-
-async function loginUser() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const status = document.getElementById("status-text");
-
-  if(!username || !password){
-    status.textContent = "Enter both username and password!";
-    status.style.color = "red";
-    return;
-  }
-
-  status.textContent = "Logging in...";
-  status.style.color = "#fff";
-
-  try {
-    const res = await fetch(`${BACKEND}/login`, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({username,password})
-    });
-    const data = await res.json();
-
-    if(res.ok && data.token){
-      localStorage.setItem("arUserToken", data.token);
-      status.textContent = "Login successful!";
-      status.style.color="green";
-      document.getElementById("login-overlay").classList.add("hidden");
-
-      // Optional: broadcast token to backend for main site
-      await fetch(`${BACKEND}/broadcast-token`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          token: data.token,
-          device: "AR_PHONE",
-          timestamp: Date.now()
-        })
-      });
-    } else {
-      status.textContent = data.detail || "Login failed";
-      status.style.color="red";
-    }
-  } catch(e){
-    console.error(e);
-    status.textContent = "Login error";
-    status.style.color="red";
-  }
-}
-</script>
+    #login-box input { display:block; margin:5px 0; padding:5px; width:200px; }
+    #login-box button { margin:5px; padding:5px 10px; cursor:pointer; }
+    #status { margin-top:5px; }
+  </style>
 </head>
-
 <body>
-
-<!-- LOGIN / REGISTER OVERLAY -->
-<div id="login-overlay">
-  <div class="login-box">
-    <img src="marker.png" id="marker-img" alt="AR Marker" />
-    <h2>AR Login / Register</h2>
-    <input type="text" id="username" placeholder="Username" />
-    <input type="password" id="password" placeholder="Password" />
-    <div>
-      <button onclick="loginUser()">Login</button>
-      <button onclick="registerUser()">Register</button>
-    </div>
-    <p id="status-text">Enter credentials to continue.</p>
+  <div id="login-box">
+    <h3>AR Login/Register</h3>
+    <input type="text" id="username" placeholder="Username"/>
+    <input type="password" id="password" placeholder="Password"/>
+    <button onclick="loginUser()">Login</button>
+    <button onclick="registerUser()">Register</button>
+    <div id="status"></div>
   </div>
-</div>
 
-<!-- AR SCENE -->
-<a-scene
-  vr-mode-ui="enabled:false"
-  loading-screen="enabled:false;"
-  arjs="sourceType:webcam; debugUIEnabled:false;"
-  embedded
-  gesture-detector
->
-  <a-marker
-    type="pattern"
-    url="marker.patt"
-    smooth="true"
-    smoothCount="10"
-    smoothTolerance="0.01"
-    smoothThreshold="5"
-    gesture-handler
-    id="ar-marker"
-  >
-    <a-plane width="1" height="0.6" color="#000" opacity="0" rotation="-90 0 0"></a-plane>
-  </a-marker>
-  <a-entity camera></a-entity>
-</a-scene>
+  <a-scene vr-mode-ui="enabled:false" embedded arjs>
+    <a-marker preset="hiro" id="ar-marker"></a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
 
+  <script>
+    const BACKEND = "https://your-cloudflare-url.com";
+    const loginBox = document.getElementById("login-box");
+    const statusDiv = document.getElementById("status");
+
+    document.querySelector("#ar-marker").addEventListener("markerFound", () => {
+      loginBox.style.display = "block";
+    });
+    document.querySelector("#ar-marker").addEventListener("markerLost", () => {
+      loginBox.style.display = "none";
+    });
+
+    async function loginUser(){
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      statusDiv.textContent = "Logging in...";
+      try{
+        const res = await fetch(`${BACKEND}/login`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({username,password})
+        });
+        const data = await res.json();
+        if(res.ok && data.token){
+          statusDiv.textContent = "Login successful!";
+        } else {
+          statusDiv.textContent = data.detail || "Login failed";
+        }
+      } catch(err){
+        statusDiv.textContent = "Login error";
+        console.error(err);
+      }
+    }
+
+    async function registerUser(){
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      statusDiv.textContent = "Registering...";
+      try{
+        const res = await fetch(`${BACKEND}/register`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({username,password})
+        });
+        const data = await res.json();
+        if(res.ok){
+          statusDiv.textContent = "Registered! Logging in...";
+          await loginUser();
+        } else {
+          statusDiv.textContent = data.detail || "Registration failed";
+        }
+      } catch(err){
+        statusDiv.textContent = "Registration error";
+        console.error(err);
+      }
+    }
+  </script>
 </body>
 </html>
