@@ -1,204 +1,180 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>AR Login / Register</title>
+<meta charset="UTF-8">
+<title>AR Login / Register</title>
+<script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+<script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
 
-  <!-- AFRAME + AR.js -->
-  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+<style>
+body { margin:0; overflow:hidden; font-family:sans-serif; }
 
-  <style>
-    body { margin:0; overflow:hidden; font-family:sans-serif; }
+#login-overlay {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.9);
+  color: white;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index: 9999;
+}
+#login-overlay.hidden { display:none; }
 
-    /* ---------------- LOGIN OVERLAY --------------- */
-    #login-overlay {
-      position: fixed;
-      top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.9);
-      color: white;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s ease;
+.login-box {
+  text-align:center;
+  max-width:400px;
+  width:90%;
+}
+.login-box input {
+  margin:5px 0;
+  padding:10px;
+  width:90%;
+}
+.login-box button {
+  margin:5px 5px 0 0;
+  padding:10px 20px;
+  cursor:pointer;
+  width:45%;
+}
+#status-text { margin-top:10px; color:#fff; }
+#marker-img { max-width:110%; width:50vw; opacity:0.7; margin-bottom:15px; }
+</style>
+
+<script>
+const BACKEND = "https://xxxx.trycloudflare.com"; // <-- YOUR CLOUDFLARE URL
+
+async function registerUser() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const status = document.getElementById("status-text");
+
+  if(!username || !password){
+    status.textContent = "Enter both username and password!";
+    status.style.color = "red";
+    return;
+  }
+
+  status.textContent = "Registering...";
+  status.style.color = "#fff";
+
+  try {
+    const res = await fetch(`${BACKEND}/register`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({username,password})
+    });
+    const data = await res.json();
+
+    if(res.ok){
+      status.textContent = "Registration successful! Logging in...";
+      status.style.color="green";
+      await loginUser(); // auto-login after registration
+    } else {
+      status.textContent = data.detail || "Registration failed";
+      status.style.color="red";
     }
-    #login-overlay.hidden { opacity: 0; pointer-events: none; }
+  } catch(e){
+    console.error(e);
+    status.textContent = "Registration error";
+    status.style.color="red";
+  }
+}
 
-    .login-box {
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
+async function loginUser() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const status = document.getElementById("status-text");
+
+  if(!username || !password){
+    status.textContent = "Enter both username and password!";
+    status.style.color = "red";
+    return;
+  }
+
+  status.textContent = "Logging in...";
+  status.style.color = "#fff";
+
+  try {
+    const res = await fetch(`${BACKEND}/login`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({username,password})
+    });
+    const data = await res.json();
+
+    if(res.ok && data.token){
+      localStorage.setItem("arUserToken", data.token);
+      status.textContent = "Login successful!";
+      status.style.color="green";
+      document.getElementById("login-overlay").classList.add("hidden");
+
+      // Optional: broadcast token to backend for main site
+      await fetch(`${BACKEND}/broadcast-token`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          token: data.token,
+          device: "AR_PHONE",
+          timestamp: Date.now()
+        })
+      });
+    } else {
+      status.textContent = data.detail || "Login failed";
+      status.style.color="red";
     }
-    .login-box input {
-      margin:5px 0;
-      padding:8px;
-      width:100%;
-      font-size: 1rem;
-    }
-    .login-box button {
-      margin-top:10px;
-      padding:10px 0;
-      cursor:pointer;
-      width:48%;
-      font-size: 1rem;
-    }
-    .login-box button + button { margin-left:4%; }
-    #status-text { margin-top:10px; color:#fff; min-height:1.2em; }
-
-    #marker-img { max-width:110%; width:50vw; height:auto; opacity:0.7; margin-bottom:15px; }
-
-  </style>
-
+  } catch(e){
+    console.error(e);
+    status.textContent = "Login error";
+    status.style.color="red";
+  }
+}
+</script>
 </head>
+
 <body>
 
-  <!-- ---------------- LOGIN/REGISTER OVERLAY ---------------- -->
-  <div id="login-overlay">
-    <div class="login-box">
-      <img src="marker.png" alt="AR Marker" id="marker-img" />
-      <h2>AR Login / Register</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <div>
-        <button onclick="loginARUser()">Login</button>
-        <button onclick="registerARUser()">Register</button>
-      </div>
-      <p id="status-text">Enter credentials to continue.</p>
+<!-- LOGIN / REGISTER OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <img src="marker.png" id="marker-img" alt="AR Marker" />
+    <h2>AR Login / Register</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <div>
+      <button onclick="loginUser()">Login</button>
+      <button onclick="registerUser()">Register</button>
     </div>
+    <p id="status-text">Enter credentials to continue.</p>
   </div>
+</div>
 
-  <!-- ---------------- AR SCENE ---------------- -->
-  <a-scene
-    vr-mode-ui="enabled:false"
-    loading-screen="enabled:false;"
-    arjs="sourceType:webcam; debugUIEnabled:false;"
-    embedded
-    gesture-detector
+<!-- AR SCENE -->
+<a-scene
+  vr-mode-ui="enabled:false"
+  loading-screen="enabled:false;"
+  arjs="sourceType:webcam; debugUIEnabled:false;"
+  embedded
+  gesture-detector
+>
+  <a-marker
+    type="pattern"
+    url="marker.patt"
+    smooth="true"
+    smoothCount="10"
+    smoothTolerance="0.01"
+    smoothThreshold="5"
+    gesture-handler
+    id="ar-marker"
   >
-    <a-marker
-      type="pattern"
-      url="marker.patt"
-      smooth="true"
-      smoothCount="10"
-      smoothTolerance="0.01"
-      smoothThreshold="5"
-      gesture-handler
-      id="ar-marker"
-    >
-      <a-plane width="1" height="0.6" color="#000" opacity="0" rotation="-90 0 0"></a-plane>
-    </a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
+    <a-plane width="1" height="0.6" color="#000" opacity="0" rotation="-90 0 0"></a-plane>
+  </a-marker>
+  <a-entity camera></a-entity>
+</a-scene>
 
-  <script>
-    const BACKEND = "https://refers-privacy-lynn-allow.trycloudflare.com";
-
-    // ---------------- HELPER ----------------
-    const overlay = document.getElementById("login-overlay");
-    const status = document.getElementById("status-text");
-
-    function updateStatus(msg, color="#fff") {
-      status.textContent = msg;
-      status.style.color = color;
-    }
-
-    function hideOverlay() {
-      overlay.classList.add("hidden");
-      setTimeout(() => { overlay.style.display = "none"; }, 600);
-    }
-
-    async function verifyUserToken(token) {
-      try {
-        const res = await fetch(`${BACKEND}/verify-token`, {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + token }
-        });
-        const data = await res.json();
-        return res.ok && data.username;
-      } catch(err) {
-        console.error("Token verification failed:", err);
-        return false;
-      }
-    }
-
-    // ---------------- REGISTER ----------------
-    async function registerARUser() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      if(!username || !password){
-        updateStatus("Enter both username and password!", "red");
-        return;
-      }
-
-      updateStatus("Registering...", "#fff");
-
-      try {
-        const res = await fetch(`${BACKEND}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-
-        if(res.ok){
-          updateStatus("Registration successful! Logging in...", "green");
-          await loginARUser(); // auto-login after register
-        } else {
-          updateStatus(data.detail || "Registration failed", "red");
-        }
-      } catch(err){
-        console.error(err);
-        updateStatus("Registration error", "red");
-      }
-    }
-
-    // ---------------- LOGIN ----------------
-    async function loginARUser() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      if(!username || !password){
-        updateStatus("Enter both username and password!", "red");
-        return;
-      }
-
-      updateStatus("Logging in...", "#fff");
-
-      try {
-        const res = await fetch(`${BACKEND}/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-
-        if(res.ok && data.token){
-          localStorage.setItem("arUserToken", data.token);
-          updateStatus("Login successful!", "green");
-          hideOverlay();
-
-          // Broadcast token to backend for main website
-          await fetch(`${BACKEND}/broadcast-token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: data.token, device:"AR_PHONE", timestamp: Date.now() })
-          });
-
-          // Send message to main window if embedded
-          if(window.parent){
-            window.parent.postMessage({ type:"AR_LOGIN_SUCCESS", token: data.token }, "*");
-          }
-
-        } else {
-          updateStatus(data.detail || "Login failed", "red");
-        }
-      } catch(err){
-        console.error(err);
-        updateStatus("Login error", "red");
-      }
-    }
-  </script>
 </body>
 </html>
