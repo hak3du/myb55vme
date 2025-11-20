@@ -1,107 +1,174 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>AR Scene Login</title>
+  <title>AR Login with YouTube</title>
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <style>
-    body, html { margin:0; padding:0; overflow:hidden; font-family: Arial, sans-serif; }
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
 
-    /* AR Login Overay */
-    #ar-login-overlay {
+  <style>
+    body { margin:0; overflow:hidden; font-family:sans-serif; }
+
+    /* LOGIN OVERLAY */
+    #login-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.85);
-      display: flex; justify-content:center; align-items:center;
-      z-index:9999; transition: opacity 0.5s;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 9999;
     }
-    #ar-login-overlay.hidden { opacity:0; pointer-events:none; }
-    .ar-login-box {
-      background:#111; padding:25px; border-radius:12px;
-      text-align:center; width:90%; max-width:350px; color:#fff;
+    #login-overlay.hidden { display: none; }
+
+    .login-box { text-align: center; max-width: 400px; }
+    .login-box input { margin: 5px 0; padding: 8px; width: 90%; }
+    .login-box button { margin-top: 10px; padding: 10px 20px; cursor: pointer; }
+    #status-text { margin-top: 10px; }
+
+    /* Marker Image */
+    .marker-img1 { max-width: 110%; width: 50vw; height:auto; opacity:0.7; }
+
+    /* YouTube iframe overlay */
+    #youtube-frame {
+      display: none;
+      border: none;
+      position: fixed;
+      width: 70vw;
+      height: 40vw;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9998;
     }
-    .ar-login-box input { width:100%; padding:10px; margin:8px 0; border-radius:6px; border:none; font-size:16px; }
-    .ar-login-box button { width:100%; padding:10px; margin-top:15px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; background:#0ff; color:#000; font-size:16px; }
-    #ar-status-text { margin-top:10px; font-size:14px; color:#fff; }
   </style>
+
+  <script>
+    const BACKEND = "https://sport-charity-explorer-garmin.trycloudflare.com"; // Replace with your backend URL
+
+    // ----------------- LOGIN -----------------
+    async function loginUser() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const statusText = document.getElementById("status-text");
+
+      statusText.textContent = "Logging in...";
+      statusText.style.color = "#fff";
+
+      try {
+        const res = await fetch(`${BACKEND}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if(res.ok && data.token) {
+          localStorage.setItem("userToken", data.token);
+          statusText.textContent = "Login successful!";
+          statusText.style.color = "green";
+          document.getElementById("login-overlay").classList.add("hidden");
+        } else {
+          statusText.textContent = data.detail || "Login failed";
+          statusText.style.color = "red";
+        }
+      } catch(err) {
+        statusText.textContent = "Login error";
+        statusText.style.color = "red";
+        console.error(err);
+      }
+    }
+
+    // ----------------- VERIFY TOKEN -----------------
+    async function verifyUserToken(token) {
+      try {
+        const res = await fetch(`${BACKEND}/verify-token`, {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        return res.ok && data.username;
+      } catch (err) {
+        console.error("Token verification failed:", err);
+        return false;
+      }
+    }
+
+    // ----------------- AR + YouTube -----------------
+    AFRAME.registerComponent('youtube-handler', {
+      init: function () {
+        const marker = this.el;
+        const iframe = document.getElementById("youtube-frame");
+
+        marker.addEventListener('markerFound', async () => {
+          const token = localStorage.getItem("userToken");
+          if(token && await verifyUserToken(token)) {
+            iframe.style.display = "block";
+          }
+        });
+
+        marker.addEventListener('markerLost', () => {
+          iframe.style.display = "none";
+        });
+      }
+    });
+  </script>
 </head>
+
 <body>
 
-<!-- AR Login Overlay -->
-<div id="ar-login-overlay">
-  <div class="ar-login-box">
-    <h2>AR Login</h2>
-    <input type="text" id="ar-username" placeholder="Username" />
-    <input type="password" id="ar-password" placeholder="Password" />
-    <button id="ar-login-btn">Login</button>
-    <p id="ar-status-text">Connect your AR marker...</p>
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <img src="C:/Users/Administrator/Downloads/marker1.png" alt="AR Marker" class="marker-img1" />
+      <h2>Welcome to the new way of Security</h2>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="loginUser()">Login</button>
+      <p id="status-text">Please enter credentials to continue.</p>
+    </div>
   </div>
-</div>
 
-<!-- AR Scene -->
-<a-scene vr-mode-ui="enabled:false" loading-screen="enabled:false" arjs="sourceType: webcam; debugUIEnabled: false;" embedded>
-  <a-assets>
-    <video id="vid" src="assets/asset.mp4" preload="auto" loop muted playsinline></video>
-  </a-assets>
+  <!-- YOUTUBE IFRAME -->
+  <iframe
+    id="youtube-frame"
+    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&controls=1"
+    allow="autoplay; encrypted-media"
+    allowfullscreen
+  ></iframe>
 
-  <a-marker type="pattern" url="marker.patt" id="ar-marker">
-    <a-video src="#vid" position="0 0.1 0" rotation="-90 0 0" scale="1 1 1"></a-video>
-  </a-marker>
+  <!-- AR SCENE -->
+  <a-scene
+    vr-mode-ui="enabled: false"
+    loading-screen="enabled: false;"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    embedded
+    gesture-detector
+  >
+    <a-marker
+      type="pattern"
+      preset="custom"
+      url="assets/marker.patt"
+      smooth="true"
+      smoothCount="10"
+      smoothTolerance="0.01"
+      smoothThreshold="5"
+      gesture-handler
+      youtube-handler
+      id="markerA"
+    >
+      <a-plane
+        width="1"
+        height="0.6"
+        color="#000"
+        opacity="0"
+        position="0 0 0"
+        rotation="-90 0 0"
+      ></a-plane>
+    </a-marker>
 
-  <a-entity camera></a-entity>
-</a-scene>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const overlay = document.getElementById("ar-login-overlay");
-  const statusText = document.getElementById("ar-status-text");
-  const loginBtn = document.getElementById("ar-login-btn");
-  const usernameInput = document.getElementById("ar-username");
-  const passwordInput = document.getElementById("ar-password");
-
-  const POST_URL = "https://administered-vitamin-queensland-specials.trycloudflare.com/ar-login";
-
-  function updateStatus(msg, color="#fff") {
-    statusText.textContent = msg;
-    statusText.style.color = color;
-    console.log("[AR Login]", msg);
-  }
-
-  function hideOverlay() {
-    overlay.classList.add("hidden");
-    setTimeout(() => overlay.style.display="none", 500);
-  }
-
-  loginBtn.addEventListener("click", async () => {
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-    if (!username || !password) {
-      updateStatus("Enter username and password", "orange");
-      return;
-    }
-
-    updateStatus("Logging in...");
-
-    try {
-      const res = await fetch(POST_URL, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({username, password})
-      });
-      const data = await res.json();
-      if (data.type === "LOGIN_SUCCESS") {
-        updateStatus(`Welcome, ${data.username}`, "lightgreen");
-        hideOverlay();
-        document.querySelector("#vid").play();
-      } else {
-        updateStatus("Login failed. Check credentials", "red");
-      }
-    } catch(err) {
-      updateStatus("Server error", "red");
-      console.error(err);
-    }
-  });
-});
-</script>
 </body>
 </html>
