@@ -1,6 +1,8 @@
 <!doctype html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>AR Login/Register</title>
   <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
@@ -8,15 +10,18 @@
     body { margin:0; overflow:hidden; font-family:sans-serif; }
     #login-box {
       position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.8); color:white; padding:20px; border-radius:10px;
+      background: rgba(0,0,0,0.85); color:white; padding:20px; border-radius:10px;
       display: none; z-index: 9999;
+      min-width: 250px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
     }
-    #login-box input { display:block; margin:5px 0; padding:5px; width:200px; }
-    #login-box button { margin:5px; padding:5px 10px; cursor:pointer; }
-    #status { margin-top:5px; }
+    #login-box input { display:block; margin:8px 0; padding:8px; width:100%; border-radius:5px; border:none; }
+    #login-box button { margin:5px; padding:8px 12px; cursor:pointer; border:none; border-radius:5px; background:#2196F3; color:white; font-weight:bold; }
+    #status { margin-top:10px; font-size:0.9em; }
   </style>
 
   <script>
+    // AR marker component
     AFRAME.registerComponent('ar-login-handler', {
       init: function () {
         const marker = this.el;
@@ -32,50 +37,57 @@
       }
     });
 
-    const BACKEND = "https://reality-consortium-showed-clay.trycloudflare.com";
+    // Backend URL (Cloudflare tunnel or HTTPS endpoint)
+    const BACKEND = "https://flavor-texas-olympic-employees.trycloudflare.com";
     const statusDiv = document.getElementById("status");
 
-    async function loginUser(){
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
+    // POST request helper
+    async function postData(url = '', data = {}) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    }
+
+    // Login function
+    async function loginUser() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if(!username || !password) {
+        statusDiv.textContent = "Please enter username and password";
+        return;
+      }
       statusDiv.textContent = "Logging in...";
-      try{
-        const res = await fetch(`${BACKEND}/login`, {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({username,password})
-        });
-        const data = await res.json();
-        if(res.ok && data.token){
-          statusDiv.textContent = "Login successful!";
-        } else {
-          statusDiv.textContent = data.detail || "Login failed";
-        }
-      } catch(err){
-        statusDiv.textContent = "Login error";
+      try {
+        const data = await postData(`${BACKEND}/login`, {username, password});
+        statusDiv.textContent = "Login successful!";
+        console.log("Login token:", data.token);
+        // Optional: Notify main website overlay (via SSE / WS)
+      } catch(err) {
+        statusDiv.textContent = err.detail || "Login failed";
         console.error(err);
       }
     }
 
-    async function registerUser(){
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
+    // Register function
+    async function registerUser() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if(!username || !password) {
+        statusDiv.textContent = "Please enter username and password";
+        return;
+      }
       statusDiv.textContent = "Registering...";
-      try{
-        const res = await fetch(`${BACKEND}/register`, {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({username,password})
-        });
-        const data = await res.json();
-        if(res.ok){
-          statusDiv.textContent = "Registered! Logging in...";
-          await loginUser();
-        } else {
-          statusDiv.textContent = data.detail || "Registration failed";
-        }
-      } catch(err){
-        statusDiv.textContent = "Registration error";
+      try {
+        const data = await postData(`${BACKEND}/register`, {username, password});
+        statusDiv.textContent = "Registered! Logging in...";
+        await loginUser();
+      } catch(err) {
+        statusDiv.textContent = err.detail || "Registration failed";
         console.error(err);
       }
     }
@@ -83,15 +95,19 @@
 </head>
 
 <body>
+  <!-- LOGIN/REGISTER OVERLAY -->
   <div id="login-box">
     <h3>AR Login/Register</h3>
     <input type="text" id="username" placeholder="Username"/>
     <input type="password" id="password" placeholder="Password"/>
-    <button onclick="loginUser()">Login</button>
-    <button onclick="registerUser()">Register</button>
+    <div style="display:flex; justify-content:space-between;">
+      <button onclick="loginUser()">Login</button>
+      <button onclick="registerUser()">Register</button>
+    </div>
     <div id="status"></div>
   </div>
 
+  <!-- AR Scene -->
   <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
     <a-marker type="pattern" url="marker.patt" ar-login-handler></a-marker>
     <a-entity camera></a-entity>
