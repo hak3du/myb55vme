@@ -1,116 +1,71 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>AR Login/Register</title>
-  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <head>
+        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-  <style>
-    body { margin:0; overflow:hidden; font-family:sans-serif; }
-    #login-box {
-      position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.85); color:white; padding:20px; border-radius:10px;
-      display: none; z-index: 9999;
-      min-width: 250px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-    }
-    #login-box input { display:block; margin:8px 0; padding:8px; width:100%; border-radius:5px; border:none; }
-    #login-box button { margin:5px; padding:8px 12px; cursor:pointer; border:none; border-radius:5px; background:#2196F3; color:white; font-weight:bold; }
-    #status { margin-top:10px; font-size:0.9em; }
-  </style>
+        <script>
+            AFRAME.registerComponent('yt-handler', {
+                init: function () {
+                    const marker = this.el;
+                    const panel = document.querySelector("#ytframe");
 
-  <script>
-    // AR marker component
-    AFRAME.registerComponent('ar-login-handler', {
-      init: function () {
-        const marker = this.el;
-        const loginBox = document.getElementById("login-box");
+                    marker.addEventListener('markerFound', () => {
+                        panel.setAttribute("visible", true);
+                    });
 
-        marker.addEventListener('markerFound', () => {
-          loginBox.style.display = "block";
-        });
+                    marker.addEventListener('markerLost', () => {
+                        panel.setAttribute("visible", false);
+                        // Reload iframe to stop audio
+                        const iframe = document.querySelector('#yt_iframe');
+                        iframe.src = iframe.src;
+                    });
+                }
+            });
+        </script>
+    </head>
 
-        marker.addEventListener('markerLost', () => {
-          loginBox.style.display = "none";
-        });
-      }
-    });
+    <body style="margin: 0; overflow: hidden;">
+        <a-scene
+            vr-mode-ui="enabled: false"
+            loading-screen="enabled: false;"
+            arjs="sourceType: webcam; debugUIEnabled: false;"
+            embedded
+        >
 
-    // Backend URL (Cloudflare tunnel or HTTPS endpoint)
-    const BACKEND = "https://flavor-texas-olympic-employees.trycloudflare.com";
-    const statusDiv = document.getElementById("status");
+            <!-- YouTube Plane -->
+            <a-entity id="ytframe" visible="false" position="0 0 0">
+                <a-plane
+                    width="1.5"
+                    height="0.85"
+                    position="0 0.3 0"
+                    rotation="-90 0 0"
+                    material="shader: html; target: #yt_iframe"
+                ></a-plane>
+            </a-entity>
 
-    // POST request helper
-    async function postData(url = '', data = {}) {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      const json = await res.json();
-      if (!res.ok) throw json;
-      return json;
-    }
+            <!-- HTML for YouTube -->
+            <div style="display:none">
+                <iframe
+                    id="yt_iframe"
+                    width="560"
+                    height="315"
+                    src="https://www.youtube.com/embed/3zwMiJFDcGs?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0"
+                    frameborder="0"
+                    allow="autoplay"
+                ></iframe>
+            </div>
 
-    // Login function
-    async function loginUser() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if(!username || !password) {
-        statusDiv.textContent = "Please enter username and password";
-        return;
-      }
-      statusDiv.textContent = "Logging in...";
-      try {
-        const data = await postData(`${BACKEND}/login`, {username, password});
-        statusDiv.textContent = "Login successful!";
-        console.log("Login token:", data.token);
-        // Optional: Notify main website overlay (via SSE / WS)
-      } catch(err) {
-        statusDiv.textContent = err.detail || "Login failed";
-        console.error(err);
-      }
-    }
+            <!-- Marker -->
+            <a-marker
+                type="pattern"
+                url="assets/marker.patt"
+                yt-handler
+                id="markerA"
+            >
+            </a-marker>
 
-    // Register function
-    async function registerUser() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if(!username || !password) {
-        statusDiv.textContent = "Please enter username and password";
-        return;
-      }
-      statusDiv.textContent = "Registering...";
-      try {
-        const data = await postData(`${BACKEND}/register`, {username, password});
-        statusDiv.textContent = "Registered! Logging in...";
-        await loginUser();
-      } catch(err) {
-        statusDiv.textContent = err.detail || "Registration failed";
-        console.error(err);
-      }
-    }
-  </script>
-</head>
-
-<body>
-  <!-- LOGIN/REGISTER OVERLAY -->
-  <div id="login-box">
-    <h3>AR Login/Register</h3>
-    <input type="text" id="username" placeholder="Username"/>
-    <input type="password" id="password" placeholder="Password"/>
-    <div style="display:flex; justify-content:space-between;">
-      <button onclick="loginUser()">Login</button>
-      <button onclick="registerUser()">Register</button>
-    </div>
-    <div id="status"></div>
-  </div>
-
-  <!-- AR Scene -->
-  <a-scene embedded arjs='sourceType: webcam; debugUIEnabled: false;'>
-    <a-marker type="pattern" url="marker.patt" ar-login-handler></a-marker>
-    <a-entity camera></a-entity>
-  </a-scene>
-</body>
+            <a-entity camera></a-entity>
+        </a-scene>
+    </body>
 </html>
