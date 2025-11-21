@@ -1,71 +1,76 @@
 <!doctype html>
 <html>
-    <head>
-        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<head>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-        <script>
-            AFRAME.registerComponent('yt-handler', {
-                init: function () {
-                    const marker = this.el;
-                    const panel = document.querySelector("#ytframe");
+    <script>
+        AFRAME.registerComponent("youtubehandler", {
+            init: function () {
+                const marker = this.el;
+                const iframe = document.getElementById("ytplayer");
 
-                    marker.addEventListener('markerFound', () => {
-                        panel.setAttribute("visible", true);
-                    });
+                marker.addEventListener("markerFound", () => {
+                    console.log("Marker Found - Playing YouTube");
+                    iframe.src = "https://www.youtube.com/embed/3zwMiJFDcGs?autoplay=1&mute=1";
+                });
 
-                    marker.addEventListener('markerLost', () => {
-                        panel.setAttribute("visible", false);
-                        // Reload iframe to stop audio
-                        const iframe = document.querySelector('#yt_iframe');
-                        iframe.src = iframe.src;
-                    });
-                }
-            });
-        </script>
-    </head>
+                marker.addEventListener("markerLost", () => {
+                    console.log("Marker Lost - Pausing YouTube");
+                    iframe.src = ""; 
+                });
+            }
+        });
+    </script>
 
-    <body style="margin: 0; overflow: hidden;">
-        <a-scene
-            vr-mode-ui="enabled: false"
-            loading-screen="enabled: false;"
-            arjs="sourceType: webcam; debugUIEnabled: false;"
-            embedded
-        >
+    <style>
+        #ytplayer {
+            width: 1024px;
+            height: 576px;
+            border: none;
+        }
+    </style>
+</head>
 
-            <!-- YouTube Plane -->
-            <a-entity id="ytframe" visible="false" position="0 0 0">
-                <a-plane
-                    width="1.5"
-                    height="0.85"
-                    position="0 0.3 0"
-                    rotation="-90 0 0"
-                    material="shader: html; target: #yt_iframe"
-                ></a-plane>
-            </a-entity>
+<body style="margin: 0; overflow: hidden;">
+    <a-scene
+        vr-mode-ui="enabled: false"
+        loading-screen="enabled: false"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+    >
 
-            <!-- HTML for YouTube -->
+        <!-- invisible iframe, used as texture -->
+        <a-assets>
             <div style="display:none">
-                <iframe
-                    id="yt_iframe"
-                    width="560"
-                    height="315"
-                    src="https://www.youtube.com/embed/3zwMiJFDcGs?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0"
-                    frameborder="0"
+                <iframe 
+                    id="ytplayer"
+                    src=""
                     allow="autoplay"
                 ></iframe>
             </div>
+        </a-assets>
 
-            <!-- Marker -->
-            <a-marker
-                type="pattern"
-                url="assets/marker.patt"
-                yt-handler
-                id="markerA"
-            >
-            </a-marker>
+        <!-- Marker -->
+        <a-marker
+            type="pattern"
+            preset="custom"
+            url="marker.patt"
+            youtubehandler
+            smooth="true"
+            smoothCount="10"
+        >
+            <!-- Map iframe to a plane (the display surface) -->
+            <a-entity 
+                geometry="primitive: plane; width: 1.5; height: 0.85"
+                material="shader: html; target: #ytplayer"
+                position="0 0.5 0"
+                rotation="-90 0 0"
+            ></a-entity>
+        </a-marker>
 
-            <a-entity camera></a-entity>
-        </a-scene>
-    </body>
+        <a-entity camera></a-entity>
+
+    </a-scene>
+</body>
 </html>
